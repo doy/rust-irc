@@ -135,4 +135,21 @@ fn test_message_parser () {
             )
         );
     }
+
+    {
+        let msg = "401 doy :No such nick/channel\r\n";
+        assert_eq!(
+            Message::parse(msg),
+            Ok(
+                Message {
+                    from: None,
+                    message_type: ReplyMessage(Reply(ERR_NOSUCHNICK)),
+                    params: vec![
+                        "doy".to_string(),
+                        "No such nick/channel".to_string(),
+                    ],
+                }
+            )
+        );
+    }
 }
