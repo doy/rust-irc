@@ -4,4 +4,4 @@
 extern crate regex;
 
 mod constants;
-mod types;
+mod message;
