@@ -39,4 +39,13 @@ impl Client {
             None => fail!(),
         }
     }
+
+    pub fn write (&mut self, msg: Message) {
+        match self.connection {
+            Some(ref mut conn) => {
+                msg.write_protocol_string(conn);
+            },
+            None => fail!(),
+        }
+    }
 }

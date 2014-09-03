@@ -1,4 +1,4 @@
-use constants::MessageType;
+use constants::{CommandMessage, MessageType, ReplyMessage};
 
 #[deriving(PartialEq, Eq, Show)]
 pub struct Message {
@@ -41,6 +41,34 @@ impl Message {
 
     pub fn params (&self) -> &Vec<String> {
         &self.params
+    }
+
+    pub fn write_protocol_string<W: Writer> (&self, w: &mut W) {
+        match &self.from {
+            &Some(ref f) => { write!(w, ":{} ", f); },
+            &None => {},
+        }
+
+        match &self.message_type {
+            &CommandMessage(ref c) => {
+                write!(w, "{}", c);
+            },
+            &ReplyMessage(ref r) => {
+                write!(w, "{}", r);
+            },
+        }
+
+        for param in self.params.iter() {
+            if param.as_slice().contains_char(' ') {
+                write!(w, " :{}", param);
+            }
+            else {
+                write!(w, " {}", param);
+            }
+        }
+
+        write!(w, "\r\n");
+        w.flush();
     }
 
     fn parse_params(params: &str) -> Vec<String> {
