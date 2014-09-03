@@ -62,7 +62,7 @@ impl Message {
             match remaining.find(' ') {
                 Some(next) => {
                     ret.push(remaining.slice(0, next).to_string());
-                    offset = next + 1;
+                    offset += next + 1;
                 },
                 None => {
                     ret.push(remaining.to_string());
