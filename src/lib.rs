@@ -4,7 +4,8 @@
 extern crate regex;
 
 pub use client::Client;
+pub use message::Message;
 
 pub mod client;
-mod constants;
-mod message;
+pub mod constants;
+pub mod message;

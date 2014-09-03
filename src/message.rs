@@ -8,7 +8,7 @@ pub struct Message {
 }
 
 impl Message {
-    fn new (from: Option<String>, message_type: MessageType, params: Vec<String>) -> Message {
+    pub fn new (from: Option<String>, message_type: MessageType, params: Vec<String>) -> Message {
         Message { from: from, message_type: message_type, params: params }
     }
 
