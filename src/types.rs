@@ -53,13 +53,12 @@ impl Message {
                 return ret;
             }
 
-            let remaining = params.slice(offset, len);
-
-            if remaining.starts_with(":") {
-                ret.push(remaining.to_string());
+            if params.char_at(offset) == ':' {
+                ret.push(params.slice(offset + 1, len).to_string());
                 return ret;
             }
 
+            let remaining = params.slice(offset, len);
             match remaining.find(' ') {
                 Some(next) => {
                     ret.push(remaining.slice(0, next).to_string());
@@ -87,6 +86,51 @@ fn test_message_parser () {
                     from: None,
                     message_type: CommandMessage(Pass),
                     params: vec!["secretpasswordhere".to_string()],
+                }
+            )
+        );
+    }
+
+    {
+        let msg = ":WiZ NICK Kilroy\r\n";
+        assert_eq!(
+            Message::parse(msg),
+            Ok(
+                Message {
+                    from: Some("WiZ".to_string()),
+                    message_type: CommandMessage(Nick),
+                    params: vec!["Kilroy".to_string()],
+                }
+            )
+        );
+    }
+
+    {
+        let msg = "QUIT :Gone to have lunch\r\n";
+        assert_eq!(
+            Message::parse(msg),
+            Ok(
+                Message {
+                    from: None,
+                    message_type: CommandMessage(Quit),
+                    params: vec!["Gone to have lunch".to_string()],
+                }
+            )
+        );
+    }
+
+    {
+        let msg = ":Trillian SQUIT cm22.eng.umd.edu :Server out of control\r\n";
+        assert_eq!(
+            Message::parse(msg),
+            Ok(
+                Message {
+                    from: Some("Trillian".to_string()),
+                    message_type: CommandMessage(Squit),
+                    params: vec![
+                        "cm22.eng.umd.edu".to_string(),
+                        "Server out of control".to_string(),
+                    ],
                 }
             )
         );
