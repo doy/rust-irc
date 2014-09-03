@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::from_str::FromStr;
 
 #[deriving(PartialEq, Eq, Show)]
