@@ -1,8 +1,9 @@
 #![allow(dead_code)]
 
+use std::fmt::{FormatError, Formatter, Show};
 use std::from_str::FromStr;
 
-#[deriving(PartialEq, Eq, Show)]
+#[deriving(PartialEq, Eq)]
 pub enum Command {
     Pass,
     Nick,
@@ -45,6 +46,56 @@ pub enum Command {
     Userhost,
     Ison,
     Raw(String),
+}
+
+impl Show for Command {
+    fn fmt (&self, f: &mut Formatter) -> Result<(), FormatError> {
+        match self {
+            &Pass => try!(write!(f, "PASS")),
+            &Nick => try!(write!(f, "NICK")),
+            &User => try!(write!(f, "USER")),
+            &Server => try!(write!(f, "SERVER")),
+            &Oper => try!(write!(f, "OPER")),
+            &Quit => try!(write!(f, "QUIT")),
+            &Squit => try!(write!(f, "SQUIT")),
+            &Join => try!(write!(f, "JOIN")),
+            &Part => try!(write!(f, "PART")),
+            &Mode => try!(write!(f, "MODE")),
+            &Topic => try!(write!(f, "TOPIC")),
+            &Names => try!(write!(f, "NAMES")),
+            &List => try!(write!(f, "LIST")),
+            &Invite => try!(write!(f, "INVITE")),
+            &Kick => try!(write!(f, "KICK")),
+            &Version => try!(write!(f, "VERSION")),
+            &Stats => try!(write!(f, "STATS")),
+            &Links => try!(write!(f, "LINKS")),
+            &Time => try!(write!(f, "TIME")),
+            &Connect => try!(write!(f, "CONNECT")),
+            &Trace => try!(write!(f, "TRACE")),
+            &Admin => try!(write!(f, "ADMIN")),
+            &Info => try!(write!(f, "INFO")),
+            &Privmsg => try!(write!(f, "PRIVMSG")),
+            &Notice => try!(write!(f, "NOTICE")),
+            &Who => try!(write!(f, "WHO")),
+            &Whois => try!(write!(f, "WHOIS")),
+            &Whowas => try!(write!(f, "WHOWAS")),
+            &Kill => try!(write!(f, "KILL")),
+            &Ping => try!(write!(f, "PING")),
+            &Pong => try!(write!(f, "PONG")),
+            &Error => try!(write!(f, "ERROR")),
+            &Away => try!(write!(f, "AWAY")),
+            &Rehash => try!(write!(f, "REHASH")),
+            &Restart => try!(write!(f, "RESTART")),
+            &Summon => try!(write!(f, "SUMMON")),
+            &Users => try!(write!(f, "USERS")),
+            &Wallops => try!(write!(f, "WALLOPS")),
+            &Userhost => try!(write!(f, "USERHOST")),
+            &Ison => try!(write!(f, "ISON")),
+            &Raw(ref s) => try!(write!(f, "{}", s)),
+        }
+
+        Ok(())
+    }
 }
 
 impl FromStr for Command {
@@ -265,8 +316,16 @@ pub static ERR_NOSERVICEHOST: u16 = 492;
 pub static RPL_TOPICDATE: u16 = 333; // date the topic was set, in seconds since the epoch
 pub static ERR_MSGFORBIDDEN: u16 = 505; // freenode blocking privmsg from unreged users
 
-#[deriving(PartialEq, Eq, Show)]
+#[deriving(PartialEq, Eq)]
 pub struct Reply(pub u16);
+
+impl Show for Reply {
+    fn fmt (&self, f: &mut Formatter) -> Result<(), FormatError> {
+        let Reply(u) = *self;
+        try!(write!(f, "{:03u}", u));
+        Ok(())
+    }
+}
 
 impl FromStr for Reply {
     fn from_str (s: &str) -> Option<Reply> {
