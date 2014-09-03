@@ -1,0 +1,94 @@
+use constants::MessageType;
+
+#[deriving(PartialEq, Eq, Show)]
+pub struct Message {
+    from: Option<String>,
+    message_type: MessageType,
+    params: Vec<String>,
+}
+
+impl Message {
+    fn new (from: Option<String>, message_type: MessageType, params: Vec<String>) -> Message {
+        Message { from: from, message_type: message_type, params: params }
+    }
+
+    pub fn parse (msg: &str) -> Result<Message, &'static str> {
+        let message_parser = regex!(r"^(?::([^ ]+) )?([A-Z]+|[0-9]{3}) ([^\r\n\0]*)\r\n$");
+        match message_parser.captures(msg) {
+            Some(captures) => {
+                let from = captures.at(1);
+                let from = if from.len() > 0 { Some(from.to_string()) } else { None };
+                let command = captures.at(2);
+
+                let params = Message::parse_params(captures.at(3));
+
+                match from_str(command) {
+                    Some(c) => Ok(Message::new(from, c, params)),
+                    None => Err("command parsing failed"),
+                }
+            },
+            None => Err("message parsing failed"),
+        }
+    }
+
+    pub fn from (&self) -> &Option<String> {
+        &self.from
+    }
+
+    pub fn message_type (&self) -> &MessageType {
+        &self.message_type
+    }
+
+    pub fn params (&self) -> &Vec<String> {
+        &self.params
+    }
+
+    fn parse_params(params: &str) -> Vec<String> {
+        let mut offset = 0;
+        let len = params.len();
+        let mut ret = vec![];
+
+        loop {
+            if offset >= len {
+                return ret;
+            }
+
+            let remaining = params.slice(offset, len);
+
+            if remaining.starts_with(":") {
+                ret.push(remaining.to_string());
+                return ret;
+            }
+
+            match remaining.find(' ') {
+                Some(next) => {
+                    ret.push(remaining.slice(0, next).to_string());
+                    offset = next + 1;
+                },
+                None => {
+                    ret.push(remaining.to_string());
+                    return ret;
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn test_message_parser () {
+    use constants::*;
+
+    {
+        let msg = "PASS secretpasswordhere\r\n";
+        assert_eq!(
+            Message::parse(msg),
+            Ok(
+                Message {
+                    from: None,
+                    message_type: CommandMessage(Pass),
+                    params: vec!["secretpasswordhere".to_string()],
+                }
+            )
+        );
+    }
+}
