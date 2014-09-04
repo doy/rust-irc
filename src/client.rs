@@ -4,6 +4,8 @@ use std::collections::hashmap::HashMap;
 use constants::{MessageType, Nick, Pass, Ping, Pong, User};
 use message::Message;
 
+type Callback<'a, 'b> = Box<Fn<(&'a mut Client<'a, 'b>, &'b Message), ()> + 'static>;
+
 #[deriving(PartialEq, Eq, Hash)]
 pub enum CallbackEvent {
     MessageEvent(MessageType),
@@ -23,12 +25,12 @@ pub struct ClientBuilder<'a, 'b> {
     servername: String,
     port: u16,
 
-    callbacks: HashMap<CallbackEvent, Vec<Box<Fn<(&'a mut Client<'a, 'b>, &'b Message), ()> + 'static>>>,
+    callbacks: HashMap<CallbackEvent, Vec<Callback<'a, 'b>>>,
 }
 
 pub struct Client<'a, 'b> {
     conn: io::BufferedStream<io::TcpStream>,
-    callbacks: HashMap<CallbackEvent, Vec<Box<Fn<(&'a mut Client<'a, 'b>, &'b Message), ()> + 'static>>>,
+    callbacks: HashMap<CallbackEvent, Vec<Callback<'a, 'b>>>,
 }
 
 impl<'a, 'b> ClientBuilder<'a, 'b> {
@@ -40,7 +42,7 @@ impl<'a, 'b> ClientBuilder<'a, 'b> {
             vec![
                 box () (|&: client: &mut Client, m: &Message| {
                     client.write(Message::new(None, Pong, m.params().clone()));
-                }) as Box<Fn<(&mut Client, &Message), ()> + 'static>
+                }) as Callback
             ]
         );
 
