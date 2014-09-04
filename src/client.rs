@@ -66,7 +66,7 @@ impl ClientBuilder {
                 vec![
                     self.username.clone(),
                     "localhost".to_string(), // XXX
-                    "localhost".to_string(), // XXX
+                    self.host.clone(),
                     self.realname.clone(),
                 ],
             )
