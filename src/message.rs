@@ -44,16 +44,16 @@ impl Message {
     }
 
     pub fn write_protocol_string<W: Writer> (&self, w: &mut W) {
-        match &self.from {
-            &Some(ref f) => { write!(w, ":{} ", f); },
-            &None => {},
+        match self.from {
+            Some(ref f) => { write!(w, ":{} ", f); },
+            None => {},
         }
 
-        match &self.message_type {
-            &CommandMessage(ref c) => {
+        match self.message_type {
+            CommandMessage(ref c) => {
                 write!(w, "{}", c);
             },
-            &ReplyMessage(ref r) => {
+            ReplyMessage(ref r) => {
                 write!(w, "{}", r);
             },
         }

@@ -83,9 +83,9 @@ impl ClientBuilder {
             )
         );
 
-        let hostname = match &self.hostname {
-            &Some(ref host) => host.clone(),
-            &None => {
+        let hostname = match self.hostname {
+            Some(ref host) => host.clone(),
+            None => {
                 // XXX get the name of the local end of the connection
                 "localhost".to_string()
             },
