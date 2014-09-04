@@ -1,4 +1,4 @@
-#![feature(phase, globs)]
+#![feature(phase, globs, unboxed_closures)]
 
 #[phase(plugin)] extern crate regex_macros;
 extern crate regex;

@@ -1,9 +1,18 @@
 use std::{io, str};
+use std::collections::hashmap::HashMap;
 
-use constants::{Nick, Pass, User};
+use constants::{MessageType, Nick, Pass, Ping, Pong, User};
 use message::Message;
 
-pub struct ClientBuilder {
+#[deriving(PartialEq, Eq, Hash)]
+pub enum CallbackEvent {
+    MessageEvent(MessageType),
+    // XXX timer? connect/disconnect?
+}
+
+// XXX these lifetime parameters make no sense at all, but appear to be
+// necessary for now...
+pub struct ClientBuilder<'a, 'b> {
     nick: String,
     pass: Option<String>,
     realname: String,
@@ -13,14 +22,28 @@ pub struct ClientBuilder {
 
     servername: String,
     port: u16,
+
+    callbacks: HashMap<CallbackEvent, Vec<Box<Fn<(&'a mut Client<'a, 'b>, &'b Message), ()> + 'static>>>,
 }
 
-pub struct Client {
+pub struct Client<'a, 'b> {
     conn: io::BufferedStream<io::TcpStream>,
+    callbacks: HashMap<CallbackEvent, Vec<Box<Fn<(&'a mut Client<'a, 'b>, &'b Message), ()> + 'static>>>,
 }
 
-impl ClientBuilder {
-    pub fn new (nick: &str, servername: &str) -> ClientBuilder {
+impl<'a, 'b> ClientBuilder<'a, 'b> {
+    pub fn new (nick: &str, servername: &str) -> ClientBuilder<'a, 'b> {
+        let mut callbacks = HashMap::new();
+
+        callbacks.insert(
+            MessageEvent(Ping),
+            vec![
+                box () (|&: client: &mut Client, m: &Message| {
+                    client.write(Message::new(None, Pong, m.params().clone()));
+                }) as Box<Fn<(&mut Client, &Message), ()> + 'static>
+            ]
+        );
+
         ClientBuilder {
             nick: nick.to_string(),
             pass: None,
@@ -31,35 +54,37 @@ impl ClientBuilder {
 
             servername: servername.to_string(),
             port: 6667,
+
+            callbacks: callbacks,
         }
     }
 
-    pub fn set_pass (&mut self, pass: &str) -> &mut ClientBuilder {
+    pub fn set_pass (&mut self, pass: &str) -> &mut ClientBuilder<'a, 'b> {
         self.pass = Some(pass.to_string());
         self
     }
 
-    pub fn set_username (&mut self, username: &str) -> &mut ClientBuilder {
+    pub fn set_username (&mut self, username: &str) -> &mut ClientBuilder<'a, 'b> {
         self.username = username.to_string();
         self
     }
 
-    pub fn set_realname (&mut self, realname: &str) -> &mut ClientBuilder {
+    pub fn set_realname (&mut self, realname: &str) -> &mut ClientBuilder<'a, 'b> {
         self.realname = realname.to_string();
         self
     }
 
-    pub fn set_hostname (&mut self, hostname: &str) -> &mut ClientBuilder {
+    pub fn set_hostname (&mut self, hostname: &str) -> &mut ClientBuilder<'a, 'b> {
         self.hostname = Some(hostname.to_string());
         self
     }
 
-    pub fn set_port (&mut self, port: u16) -> &mut ClientBuilder {
+    pub fn set_port (&mut self, port: u16) -> &mut ClientBuilder<'a, 'b> {
         self.port = port;
         self
     }
 
-    pub fn connect (self) -> Client {
+    pub fn connect (self) -> Client<'a, 'b> {
         let nick = self.nick.clone();
         let pass = self.pass.clone();
         let hostname = match self.hostname {
@@ -92,13 +117,16 @@ impl ClientBuilder {
         client
     }
 
-    pub fn connect_raw (self) -> Client {
+    pub fn connect_raw (self) -> Client<'a, 'b> {
         let mut stream = io::TcpStream::connect(self.servername.as_slice(), self.port);
-        Client { conn: io::BufferedStream::new(stream.unwrap()) }
+        Client {
+            conn: io::BufferedStream::new(stream.unwrap()),
+            callbacks: self.callbacks,
+        }
     }
 }
 
-impl Client {
+impl<'a, 'b> Client<'a, 'b> {
     pub fn read (&mut self) -> Message {
         // \n isn't valid inside a message, so this should be fine. if the \n
         // we find isn't preceded by a \r, this will be caught by the message

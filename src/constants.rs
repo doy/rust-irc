@@ -3,7 +3,7 @@
 use std::fmt::{FormatError, Formatter, Show};
 use std::from_str::FromStr;
 
-#[deriving(PartialEq, Eq)]
+#[deriving(PartialEq, Eq, Hash)]
 pub enum MessageType {
     Pass,
     Nick,
