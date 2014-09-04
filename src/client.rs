@@ -1,6 +1,6 @@
 use std::{io, str};
 
-use constants::{CommandMessage, Nick, User};
+use constants::{CommandMessage, Nick, Pass, User};
 use message::Message;
 
 pub struct ClientBuilder {
@@ -61,6 +61,20 @@ impl ClientBuilder {
 
     pub fn connect (&mut self) -> Client {
         let mut client = self.connect_raw();
+
+        match self.pass {
+            Some(ref pass) => {
+                client.write(
+                    Message::new(
+                        None,
+                        CommandMessage(Pass),
+                        vec![pass.clone()],
+                    )
+                );
+            },
+            None => {},
+        }
+
         client.write(
             Message::new(
                 None,
