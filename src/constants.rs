@@ -4,7 +4,7 @@ use std::fmt::{FormatError, Formatter, Show};
 use std::from_str::FromStr;
 
 #[deriving(PartialEq, Eq)]
-pub enum Command {
+pub enum MessageType {
     Pass,
     Nick,
     User,
@@ -45,10 +45,11 @@ pub enum Command {
     Wallops,
     Userhost,
     Ison,
-    Raw(String),
+    RawCommand(String),
+    Reply(u16),
 }
 
-impl Show for Command {
+impl Show for MessageType {
     fn fmt (&self, f: &mut Formatter) -> Result<(), FormatError> {
         match self {
             &Pass => try!(write!(f, "PASS")),
@@ -91,57 +92,77 @@ impl Show for Command {
             &Wallops => try!(write!(f, "WALLOPS")),
             &Userhost => try!(write!(f, "USERHOST")),
             &Ison => try!(write!(f, "ISON")),
-            &Raw(ref s) => try!(write!(f, "{}", s)),
+            &RawCommand(ref s) => try!(write!(f, "{}", s)),
+            &Reply(i) => try!(write!(f, "{:03}", i)),
         }
 
         Ok(())
     }
 }
 
-impl FromStr for Command {
-    fn from_str (s: &str) -> Option<Command> {
+impl FromStr for MessageType {
+    fn from_str (s: &str) -> Option<MessageType> {
         match s {
-            s if s == "PASS" => Some(Pass),
-            s if s == "NICK" => Some(Nick),
-            s if s == "USER" => Some(User),
-            s if s == "SERVER" => Some(Server),
-            s if s == "OPER" => Some(Oper),
-            s if s == "QUIT" => Some(Quit),
-            s if s == "SQUIT" => Some(Squit),
-            s if s == "JOIN" => Some(Join),
-            s if s == "PART" => Some(Part),
-            s if s == "MODE" => Some(Mode),
-            s if s == "TOPIC" => Some(Topic),
-            s if s == "NAMES" => Some(Names),
-            s if s == "LIST" => Some(List),
-            s if s == "INVITE" => Some(Invite),
-            s if s == "KICK" => Some(Kick),
-            s if s == "VERSION" => Some(Version),
-            s if s == "STATS" => Some(Stats),
-            s if s == "LINKS" => Some(Links),
-            s if s == "TIME" => Some(Time),
-            s if s == "CONNECT" => Some(Connect),
-            s if s == "TRACE" => Some(Trace),
-            s if s == "ADMIN" => Some(Admin),
-            s if s == "INFO" => Some(Info),
-            s if s == "PRIVMSG" => Some(Privmsg),
-            s if s == "NOTICE" => Some(Notice),
-            s if s == "WHO" => Some(Who),
-            s if s == "WHOIS" => Some(Whois),
-            s if s == "WHOWAS" => Some(Whowas),
-            s if s == "KILL" => Some(Kill),
-            s if s == "PING" => Some(Ping),
-            s if s == "PONG" => Some(Pong),
-            s if s == "ERROR" => Some(Error),
-            s if s == "AWAY" => Some(Away),
-            s if s == "REHASH" => Some(Rehash),
-            s if s == "RESTART" => Some(Restart),
-            s if s == "SUMMON" => Some(Summon),
-            s if s == "USERS" => Some(Users),
-            s if s == "WALLOPS" => Some(Wallops),
-            s if s == "USERHOST" => Some(Userhost),
-            s if s == "ISON" => Some(Ison),
-            s => Some(Raw(s.to_string())),
+            "PASS" => Some(Pass),
+            "NICK" => Some(Nick),
+            "USER" => Some(User),
+            "SERVER" => Some(Server),
+            "OPER" => Some(Oper),
+            "QUIT" => Some(Quit),
+            "SQUIT" => Some(Squit),
+            "JOIN" => Some(Join),
+            "PART" => Some(Part),
+            "MODE" => Some(Mode),
+            "TOPIC" => Some(Topic),
+            "NAMES" => Some(Names),
+            "LIST" => Some(List),
+            "INVITE" => Some(Invite),
+            "KICK" => Some(Kick),
+            "VERSION" => Some(Version),
+            "STATS" => Some(Stats),
+            "LINKS" => Some(Links),
+            "TIME" => Some(Time),
+            "CONNECT" => Some(Connect),
+            "TRACE" => Some(Trace),
+            "ADMIN" => Some(Admin),
+            "INFO" => Some(Info),
+            "PRIVMSG" => Some(Privmsg),
+            "NOTICE" => Some(Notice),
+            "WHO" => Some(Who),
+            "WHOIS" => Some(Whois),
+            "WHOWAS" => Some(Whowas),
+            "KILL" => Some(Kill),
+            "PING" => Some(Ping),
+            "PONG" => Some(Pong),
+            "ERROR" => Some(Error),
+            "AWAY" => Some(Away),
+            "REHASH" => Some(Rehash),
+            "RESTART" => Some(Restart),
+            "SUMMON" => Some(Summon),
+            "USERS" => Some(Users),
+            "WALLOPS" => Some(Wallops),
+            "USERHOST" => Some(Userhost),
+            "ISON" => Some(Ison),
+            s => {
+                match s.char_at(0) {
+                    '0'..'9' => {
+                        match from_str(s) {
+                            Some(i) => Some(Reply(i)),
+                            None => Some(RawCommand(s.to_string())),
+                        }
+                    },
+                    _ => Some(RawCommand(s.to_string())),
+                }
+            },
+        }
+    }
+}
+
+impl MessageType {
+    pub fn is_reply (&self) -> bool {
+        match self {
+            &Reply(_) => true,
+            _ => false,
         }
     }
 }
@@ -316,49 +337,11 @@ pub static ERR_NOSERVICEHOST: u16 = 492;
 pub static RPL_TOPICDATE: u16 = 333; // date the topic was set, in seconds since the epoch
 pub static ERR_MSGFORBIDDEN: u16 = 505; // freenode blocking privmsg from unreged users
 
-#[deriving(PartialEq, Eq)]
-pub struct Reply(pub u16);
-
-impl Show for Reply {
-    fn fmt (&self, f: &mut Formatter) -> Result<(), FormatError> {
-        let Reply(u) = *self;
-        try!(write!(f, "{:03u}", u));
-        Ok(())
-    }
-}
-
-impl FromStr for Reply {
-    fn from_str (s: &str) -> Option<Reply> {
-        match from_str(s) {
-            Some(i) => Some(Reply(i)),
-            None => None,
-        }
-    }
-}
-
-#[deriving(PartialEq, Eq, Show)]
-pub enum MessageType {
-    CommandMessage(Command),
-    ReplyMessage(Reply),
-}
-
-impl FromStr for MessageType {
-    fn from_str (s: &str) -> Option<MessageType> {
-        match s.char_at(0) {
-            '0' .. '9' => {
-                match from_str(s) {
-                    Some(r) => Some(ReplyMessage(r)),
-                    None => None,
-                }
-            },
-            _ => {
-                match from_str(s) {
-                    Some(c) => Some(CommandMessage(c)),
-                    None => None,
-                }
-            },
-        }
-    }
-}
-
 pub static MAX_MESSAGE_LENGTH: i32 = 512;
+
+#[test]
+fn test_message_type () {
+    assert!(!from_str::<MessageType>("PASS").unwrap().is_reply());
+    assert!(from_str::<MessageType>("001").unwrap().is_reply());
+    assert!(!from_str::<MessageType>("NOTACOMMAND").unwrap().is_reply());
+}

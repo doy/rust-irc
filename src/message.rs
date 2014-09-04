@@ -1,4 +1,4 @@
-use constants::{CommandMessage, MessageType, ReplyMessage};
+use constants::MessageType;
 
 #[deriving(PartialEq, Eq, Show)]
 pub struct Message {
@@ -49,14 +49,7 @@ impl Message {
             None => {},
         }
 
-        match self.message_type {
-            CommandMessage(ref c) => {
-                write!(w, "{}", c);
-            },
-            ReplyMessage(ref r) => {
-                write!(w, "{}", r);
-            },
-        }
+        write!(w, "{}", self.message_type);
 
         for param in self.params.iter() {
             if param.as_slice().contains_char(' ') {
@@ -112,7 +105,7 @@ fn test_message_parser () {
             Ok(
                 Message {
                     from: None,
-                    message_type: CommandMessage(Pass),
+                    message_type: Pass,
                     params: vec!["secretpasswordhere".to_string()],
                 }
             )
@@ -126,7 +119,7 @@ fn test_message_parser () {
             Ok(
                 Message {
                     from: Some("WiZ".to_string()),
-                    message_type: CommandMessage(Nick),
+                    message_type: Nick,
                     params: vec!["Kilroy".to_string()],
                 }
             )
@@ -140,7 +133,7 @@ fn test_message_parser () {
             Ok(
                 Message {
                     from: None,
-                    message_type: CommandMessage(Quit),
+                    message_type: Quit,
                     params: vec!["Gone to have lunch".to_string()],
                 }
             )
@@ -154,7 +147,7 @@ fn test_message_parser () {
             Ok(
                 Message {
                     from: Some("Trillian".to_string()),
-                    message_type: CommandMessage(Squit),
+                    message_type: Squit,
                     params: vec![
                         "cm22.eng.umd.edu".to_string(),
                         "Server out of control".to_string(),
@@ -171,7 +164,7 @@ fn test_message_parser () {
             Ok(
                 Message {
                     from: None,
-                    message_type: ReplyMessage(Reply(ERR_NOSUCHNICK)),
+                    message_type: Reply(ERR_NOSUCHNICK),
                     params: vec![
                         "doy".to_string(),
                         "No such nick/channel".to_string(),

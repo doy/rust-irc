@@ -1,6 +1,6 @@
 use std::{io, str};
 
-use constants::{CommandMessage, Nick, Pass, User};
+use constants::{Nick, Pass, User};
 use message::Message;
 
 pub struct ClientBuilder {
@@ -64,24 +64,12 @@ impl ClientBuilder {
 
         match self.pass {
             Some(ref pass) => {
-                client.write(
-                    Message::new(
-                        None,
-                        CommandMessage(Pass),
-                        vec![pass.clone()],
-                    )
-                );
+                client.write(Message::new(None, Pass, vec![pass.clone()]));
             },
             None => {},
         }
 
-        client.write(
-            Message::new(
-                None,
-                CommandMessage(Nick),
-                vec![self.nick.clone()],
-            )
-        );
+        client.write(Message::new(None, Nick, vec![self.nick.clone()]));
 
         let hostname = match self.hostname {
             Some(ref host) => host.clone(),
@@ -93,7 +81,7 @@ impl ClientBuilder {
         client.write(
             Message::new(
                 None,
-                CommandMessage(User),
+                User,
                 vec![
                     self.username.clone(),
                     hostname,
