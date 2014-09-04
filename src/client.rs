@@ -9,7 +9,9 @@ pub struct ClientBuilder {
     realname: String,
     username: String,
 
-    host: String,
+    hostname: Option<String>,
+
+    servername: String,
     port: u16,
 }
 
@@ -18,14 +20,16 @@ pub struct Client {
 }
 
 impl ClientBuilder {
-    pub fn new (nick: &str, host: &str) -> ClientBuilder {
+    pub fn new (nick: &str, servername: &str) -> ClientBuilder {
         ClientBuilder {
             nick: nick.to_string(),
             pass: None,
             realname: nick.to_string(),
             username: nick.to_string(),
 
-            host: host.to_string(),
+            hostname: None,
+
+            servername: servername.to_string(),
             port: 6667,
         }
     }
@@ -45,6 +49,11 @@ impl ClientBuilder {
         self
     }
 
+    pub fn set_hostname (&mut self, hostname: &str) -> &mut ClientBuilder {
+        self.hostname = Some(hostname.to_string());
+        self
+    }
+
     pub fn set_port (&mut self, port: u16) -> &mut ClientBuilder {
         self.port = port;
         self
@@ -59,14 +68,22 @@ impl ClientBuilder {
                 vec![self.nick.clone()],
             )
         );
+
+        let hostname = match &self.hostname {
+            &Some(ref host) => host.clone(),
+            &None => {
+                // XXX get the name of the local end of the connection
+                "localhost".to_string()
+            },
+        };
         client.write(
             Message::new(
                 None,
                 CommandMessage(User),
                 vec![
                     self.username.clone(),
-                    "localhost".to_string(), // XXX
-                    self.host.clone(),
+                    hostname,
+                    self.servername.clone(),
                     self.realname.clone(),
                 ],
             )
@@ -75,7 +92,7 @@ impl ClientBuilder {
     }
 
     pub fn connect_raw (&mut self) -> Client {
-        let mut stream = io::TcpStream::connect(self.host.as_slice(), self.port);
+        let mut stream = io::TcpStream::connect(self.servername.as_slice(), self.port);
         Client { conn: io::BufferedStream::new(stream.unwrap()) }
     }
 }
