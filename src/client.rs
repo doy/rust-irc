@@ -59,18 +59,9 @@ impl ClientBuilder {
         self
     }
 
-    pub fn connect (&mut self) -> Client {
-        let mut client = self.connect_raw();
-
-        match self.pass {
-            Some(ref pass) => {
-                client.write(Message::new(None, Pass, vec![pass.clone()]));
-            },
-            None => {},
-        }
-
-        client.write(Message::new(None, Nick, vec![self.nick.clone()]));
-
+    pub fn connect (self) -> Client {
+        let nick = self.nick.clone();
+        let pass = self.pass.clone();
         let hostname = match self.hostname {
             Some(ref host) => host.clone(),
             None => {
@@ -78,22 +69,30 @@ impl ClientBuilder {
                 "localhost".to_string()
             },
         };
+        let username = self.username.clone();
+        let servername = self.servername.clone();
+        let realname = self.realname.clone();
+
+        let mut client = self.connect_raw();
+
+        match pass {
+            Some(pass) => {
+                client.write(Message::new(None, Pass, vec![pass]));
+            },
+            None => {},
+        }
+
+        client.write(Message::new(None, Nick, vec![nick]));
+
         client.write(
             Message::new(
-                None,
-                User,
-                vec![
-                    self.username.clone(),
-                    hostname,
-                    self.servername.clone(),
-                    self.realname.clone(),
-                ],
+                None, User, vec![ username, hostname, servername, realname ],
             )
         );
         client
     }
 
-    pub fn connect_raw (&mut self) -> Client {
+    pub fn connect_raw (self) -> Client {
         let mut stream = io::TcpStream::connect(self.servername.as_slice(), self.port);
         Client { conn: io::BufferedStream::new(stream.unwrap()) }
     }
