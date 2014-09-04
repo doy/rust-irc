@@ -6,9 +6,10 @@ use message::Message;
 
 type Callback<'a, 'b> = Box<Fn<(&'a mut Client<'a, 'b>, &'b Message), ()> + 'static>;
 
-#[deriving(PartialEq, Eq, Hash)]
+#[deriving(PartialEq, Eq, Hash, Clone)]
 pub enum CallbackEvent {
     MessageEvent(MessageType),
+    AnyMessageEvent,
     // XXX timer? connect/disconnect?
 }
 
@@ -86,6 +87,17 @@ impl<'a, 'b> ClientBuilder<'a, 'b> {
         self
     }
 
+    pub fn remove_all_callbacks (&mut self) -> &mut ClientBuilder<'a, 'b> {
+        self.callbacks.clear();
+        self
+    }
+
+    pub fn add_callback (&mut self, cb_type: CallbackEvent, cb: Callback<'a, 'b>) -> &mut ClientBuilder<'a, 'b> {
+        self.callbacks.find_or_insert(cb_type.clone(), vec![]);
+        self.callbacks.get_mut(&cb_type).push(cb);
+        self
+    }
+
     pub fn connect (self) -> Client<'a, 'b> {
         let nick = self.nick.clone();
         let pass = self.pass.clone();
@@ -141,5 +153,27 @@ impl<'a, 'b> Client<'a, 'b> {
 
     pub fn write (&mut self, msg: Message) {
         msg.write_protocol_string(&mut self.conn);
+    }
+
+    pub fn run_loop (&'a mut self) {
+        loop {
+            let res = self.read();
+            match self.callbacks.find(&AnyMessageEvent) {
+                Some(cbs) => {
+                    for cb in cbs.iter() {
+                        (*cb).call((self, &res));
+                    }
+                },
+                None => {},
+            }
+            match self.callbacks.find(&MessageEvent(res.message_type().clone())) {
+                Some(cbs) => {
+                    for cb in cbs.iter() {
+                        (*cb).call((self, &res));
+                    }
+                },
+                None => {},
+            }
+        }
     }
 }
