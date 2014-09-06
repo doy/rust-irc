@@ -133,4 +133,16 @@ impl Client {
             None => None,
         }
     }
+
+    // XXX eventually, we'll want to set up callbacks for specific events
+    // beforehand, and just have a `run_loop` method that loops and calls the
+    // preset callbacks as necessary. unfortunately, rust doesn't handle
+    // storing closures very well yet if they need to receive a borrowed
+    // pointer, and we would need to pass the client object into the callback
+    // in order to make this work
+    pub fn run_loop_with (&mut self, handler: |Message|) {
+        loop {
+            handler(self.read());
+        }
+    }
 }
