@@ -1,8 +1,9 @@
 extern crate irc;
 
 fn main () {
-    let mut client = irc::ClientBuilder::new("doytest", "chat.freenode.net").connect();
-    client.run_loop_with(|m| {
+    let builder = irc::ClientBuilder::new("doytest", "chat.freenode.net");
+    let client = builder.connect();
+    client.run_loop_with(|_client, m| {
         println!("{}", m);
     });
 }

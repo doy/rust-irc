@@ -140,9 +140,10 @@ impl Client {
     // storing closures very well yet if they need to receive a borrowed
     // pointer, and we would need to pass the client object into the callback
     // in order to make this work
-    pub fn run_loop_with (&mut self, handler: |Message|) {
+    pub fn run_loop_with (mut self, handler: |&mut Client, Message|) {
         loop {
-            handler(self.read());
+            let m = self.read();
+            handler(&mut self, m);
         }
     }
 }
