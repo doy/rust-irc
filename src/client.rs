@@ -17,6 +17,7 @@ pub struct ClientBuilder {
 
 pub struct Client {
     conn: io::BufferedStream<io::TcpStream>,
+    socket_name: Option<String>,
 }
 
 impl ClientBuilder {
@@ -62,18 +63,23 @@ impl ClientBuilder {
     pub fn connect (self) -> Client {
         let nick = self.nick.clone();
         let pass = self.pass.clone();
-        let hostname = match self.hostname {
-            Some(ref host) => host.clone(),
-            None => {
-                // XXX get the name of the local end of the connection
-                "localhost".to_string()
-            },
-        };
+        let hostname = self.hostname.clone();
         let username = self.username.clone();
         let servername = self.servername.clone();
         let realname = self.realname.clone();
 
         let mut client = self.connect_raw();
+
+        let hostname = match hostname {
+            Some(host) => host,
+            None => {
+                match client.socket_name() {
+                    Some(host) => host.to_string(),
+                    // XXX something better here?
+                    None => "localhost".to_string(),
+                }
+            },
+        };
 
         match pass {
             Some(pass) => {
@@ -94,7 +100,15 @@ impl ClientBuilder {
 
     pub fn connect_raw (self) -> Client {
         let mut stream = io::TcpStream::connect(self.servername.as_slice(), self.port);
-        Client { conn: io::BufferedStream::new(stream.unwrap()) }
+        let mut stream = stream.unwrap();
+        let socket_name = match stream.socket_name() {
+            Ok(addr) => Some(addr.ip.to_string()),
+            Err(_) => None,
+        };
+        Client {
+            conn: io::BufferedStream::new(stream),
+            socket_name: socket_name,
+        }
     }
 }
 
@@ -111,5 +125,12 @@ impl Client {
 
     pub fn write (&mut self, msg: Message) {
         msg.write_protocol_string(&mut self.conn);
+    }
+
+    pub fn socket_name (&self) -> Option<&str> {
+        match self.socket_name {
+            Some(ref name) => Some(name.as_slice()),
+            None => None,
+        }
     }
 }
