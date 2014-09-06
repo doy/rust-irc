@@ -7,8 +7,8 @@ fn main () {
     let client = builder.connect();
     client.run_loop_with(|client, m| {
         println!("{}", m);
-        match m.message_type() {
-            &Ping => {
+        match *m.message_type() {
+            Ping => {
                 client.write(irc::Message::new(None, Pong, m.params().clone()));
             },
             _ => {},
