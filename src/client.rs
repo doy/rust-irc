@@ -56,56 +56,19 @@ impl<T: Client> ClientBuilder<T> {
     }
 
     pub fn connect (self) -> T {
-        let nick = self.nick.clone();
-        let pass = self.pass.clone();
-        let hostname = self.hostname.clone();
-        let username = self.username.clone();
-        let servername = self.servername.clone();
-        let realname = self.realname.clone();
-
-        let mut client = self.connect_raw();
-
-        let hostname = match hostname {
-            Some(host) => host,
-            None => {
-                match client.socket_name() {
-                    Some(ref host) => host.to_string(),
-                    // XXX something better here?
-                    None => "localhost".to_string(),
-                }
-            },
-        };
-
-        match pass {
-            Some(pass) => {
-                client.write(Message::new(None, Pass, vec![pass]));
-            },
-            None => {},
-        }
-
-        client.write(Message::new(None, Nick, vec![nick]));
-
-        client.write(
-            Message::new(
-                None, User, vec![ username, hostname, servername, realname ],
-            )
-        );
-        client
-    }
-
-    pub fn connect_raw (self) -> T {
         let mut stream = io::TcpStream::connect(self.servername.as_slice(), self.port);
         let mut stream = stream.unwrap();
         let socket_name = match stream.socket_name() {
             Ok(addr) => Some(addr.ip.to_string()),
             Err(_) => None,
         };
-        Client::new(io::BufferedStream::new(stream), socket_name)
+        Client::new(self, io::BufferedStream::new(stream), socket_name)
     }
 }
 
 pub trait Client {
-    fn new (conn: io::BufferedStream<io::TcpStream>, socket_name: Option<String>) -> Self;
+    fn new (builder: ClientBuilder<Self>, conn: io::BufferedStream<io::TcpStream>, socket_name: Option<String>) -> Self;
+    fn builder (&self) -> &ClientBuilder<Self>;
     fn conn (&mut self) -> &mut io::BufferedStream<io::TcpStream>;
     fn socket_name (&self) -> Option<&str>;
 
@@ -123,16 +86,62 @@ pub trait Client {
         msg.write_protocol_string(self.conn());
     }
 
-    // XXX eventually, we'll want to set up callbacks for specific events
-    // beforehand, and just have a `run_loop` method that loops and calls the
-    // preset callbacks as necessary. unfortunately, rust doesn't handle
-    // storing closures very well yet if they need to receive a borrowed
-    // pointer, and we would need to pass the client object into the callback
-    // in order to make this work
-    fn run_loop_with (mut self, handler: |&mut Self, Message|) {
+    fn run_loop_with (mut self, handler: |&mut Self, Message|) -> Self {
         loop {
             let m = self.read();
             handler(&mut self, m);
         }
+        self
     }
+
+    // XXX once storing closures in structs works, we'll also want to provide
+    // a default CallbackClient impl of Client to allow users to not have to
+    // worry about the struct layout for simple cases.
+    fn run_loop (mut self) {
+        Client::on_connect(&mut self);
+
+        let mut client = self.run_loop_with(|client, m| {
+            Client::on_message(client, m);
+        });
+
+        Client::on_disconnect(&mut client);
+    }
+
+    fn on_connect (client: &mut Self) {
+        let nick = client.builder().nick.clone();
+        let pass = client.builder().pass.clone();
+        let username = client.builder().username.clone();
+        let servername = client.builder().servername.clone();
+        let realname = client.builder().realname.clone();
+
+        match pass {
+            Some(pass) => {
+                client.write(Message::new(None, Pass, vec![pass]));
+            },
+            None => {},
+        }
+
+        client.write(Message::new(None, Nick, vec![nick]));
+
+        let hostname = match client.builder().hostname {
+            Some(ref host) => host.clone(),
+            None => {
+                match client.socket_name() {
+                    Some(ref host) => host.to_string(),
+                    // XXX something better here?
+                    None => "localhost".to_string(),
+                }
+            },
+        };
+
+        client.write(
+            Message::new(
+                None, User, vec![ username, hostname, servername, realname ],
+            )
+        );
+    }
+
+    fn on_disconnect (client: &mut Self) { }
+
+    fn on_message (client: &mut Self, m: Message) { }
 }

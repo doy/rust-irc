@@ -6,13 +6,17 @@ use irc::Client;
 use std::io;
 
 struct ExampleClient {
+    builder: irc::ClientBuilder<ExampleClient>,
     conn: io::BufferedStream<io::TcpStream>,
     socket_name: Option<String>,
 }
 
 impl irc::Client for ExampleClient {
-    fn new (conn: io::BufferedStream<io::TcpStream>, socket_name: Option<String>) -> ExampleClient {
-        ExampleClient { conn: conn, socket_name: socket_name }
+    fn new (builder: irc::ClientBuilder<ExampleClient>, conn: io::BufferedStream<io::TcpStream>, socket_name: Option<String>) -> ExampleClient {
+        ExampleClient { builder: builder, conn: conn, socket_name: socket_name }
+    }
+    fn builder (&self) -> &irc::ClientBuilder<ExampleClient> {
+        &self.builder
     }
     fn conn (&mut self) -> &mut io::BufferedStream<io::TcpStream> {
         &mut self.conn
@@ -23,12 +27,8 @@ impl irc::Client for ExampleClient {
             None => None,
         }
     }
-}
 
-fn main () {
-    let builder = irc::ClientBuilder::new("doytest", "chat.freenode.net");
-    let client: ExampleClient = builder.connect();
-    client.run_loop_with(|client, m| {
+    fn on_message (client: &mut ExampleClient, m: irc::Message) {
         print!("{}", m.to_protocol_string());
         match *m.message_type() {
             Ping => {
@@ -36,5 +36,11 @@ fn main () {
             },
             _ => {},
         }
-    });
+    }
+}
+
+fn main () {
+    let builder = irc::ClientBuilder::new("doytest", "chat.freenode.net");
+    let client: ExampleClient = builder.connect();
+    client.run_loop();
 }
