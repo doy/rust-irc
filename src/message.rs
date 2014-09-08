@@ -1,5 +1,7 @@
 use constants::MessageType;
 
+use std::io;
+
 #[deriving(PartialEq, Eq, Show)]
 pub struct Message {
     from: Option<String>,
@@ -62,6 +64,13 @@ impl Message {
 
         write!(w, "\r\n");
         w.flush();
+    }
+
+    pub fn to_protocol_string (&self) -> String {
+        let mut w = io::MemWriter::new();
+        self.write_protocol_string(&mut w);
+        // XXX error handling, encoding
+        String::from_utf8(w.unwrap()).unwrap()
     }
 
     fn parse_params(params: &str) -> Vec<String> {
