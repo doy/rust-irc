@@ -86,10 +86,10 @@ pub trait Client {
         msg.write_protocol_string(self.conn());
     }
 
-    fn run_loop_with (mut self, handler: |&mut Self, Message|) -> Self {
+    fn run_loop_with (mut self, handler: |&mut Self, &Message|) -> Self {
         loop {
             let m = self.read();
-            handler(&mut self, m);
+            handler(&mut self, &m);
         }
         self
     }
@@ -143,5 +143,5 @@ pub trait Client {
 
     fn on_disconnect (client: &mut Self) { }
 
-    fn on_message (client: &mut Self, m: Message) { }
+    fn on_message (client: &mut Self, m: &Message) { }
 }

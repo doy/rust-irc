@@ -28,7 +28,7 @@ impl irc::Client for ExampleClient {
         }
     }
 
-    fn on_message (client: &mut ExampleClient, m: irc::Message) {
+    fn on_message (client: &mut ExampleClient, m: &irc::Message) {
         print!("{}", m.to_protocol_string());
         match *m.message_type() {
             Ping => {
