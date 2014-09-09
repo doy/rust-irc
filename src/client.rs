@@ -99,7 +99,7 @@ impl<T: Client> ClientBuilder<T> {
     }
 
     pub fn connect (self) -> T {
-        let mut stream = io::TcpStream::connect(self.servername.as_slice(), self.port);
+        let stream = io::TcpStream::connect(self.servername.as_slice(), self.port);
         let mut stream = stream.unwrap();
         let socket_name = match stream.socket_name() {
             Ok(addr) => Some(addr.ip.to_string()),
