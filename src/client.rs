@@ -142,18 +142,22 @@ impl Client {
         Message::parse(str::from_utf8(buf.unwrap().as_slice()).unwrap()).unwrap()
     }
 
-    pub fn write (&mut self, msg: Message) {
-        msg.write_protocol_string(self.conn());
+    pub fn write (&mut self, msg: Message) -> io::IoResult<()> {
+        try!(msg.write_protocol_string(self.conn()));
+        Ok(())
     }
 
-    pub fn run_loop (&mut self, handler: |&mut Client, &Message|) {
+    pub fn run_loop (&mut self, handler: |&mut Client, &Message| -> io::IoResult<()>) -> io::IoError {
         loop {
             let m = self.read();
-            handler(self, &m);
+            match handler(self, &m) {
+                Err(e) => return e,
+                _ => {},
+            }
         }
     }
 
-    pub fn run_loop_with_callbacks<T: ClientCallbacks> (mut self, cbs: T) {
+    pub fn run_loop_with_callbacks<T: ClientCallbacks> (mut self, cbs: T) -> io::IoError {
         cbs.run_loop(&mut self)
     }
 }
@@ -162,11 +166,14 @@ pub trait ClientCallbacks {
     // XXX once storing closures in structs works, we'll also want to provide
     // a default CallbackClient impl of Client to allow users to not have to
     // worry about the struct layout for simple cases.
-    fn run_loop (mut self, client: &mut Client) {
-        self.on_client_connect(client);
+    fn run_loop (mut self, client: &mut Client) -> io::IoError {
+        match self.on_client_connect(client) {
+            Err(e) => return e,
+            _ => { },
+        }
 
-        client.run_loop(|client, m| {
-            self.on_any_message(client, m);
+        let err = client.run_loop(|client, m| {
+            try!(self.on_any_message(client, m));
 
             let from = m.from().as_ref().map(|s| s.as_slice());
             let p = m.params().as_slice();
@@ -755,14 +762,17 @@ pub trait ClientCallbacks {
                 },
                 Reply(_) => {
                     // XXX
+                    Ok(())
                 },
             }
         });
 
-        self.on_client_disconnect(client);
+        let _ = self.on_client_disconnect(client);
+
+        err
     }
 
-    fn on_client_connect (&mut self, client: &mut Client) {
+    fn on_client_connect (&mut self, client: &mut Client) -> io::IoResult<()> {
         let nick = client.builder().nick.clone();
         let pass = client.builder().pass.clone();
         let username = client.builder().username.clone();
@@ -771,12 +781,12 @@ pub trait ClientCallbacks {
 
         match pass {
             Some(pass) => {
-                client.write(Message::new(None, Pass, vec![pass]));
+                try!(client.write(Message::new(None, Pass, vec![pass])));
             },
             None => {},
         }
 
-        client.write(Message::new(None, Nick, vec![nick]));
+        try!(client.write(Message::new(None, Nick, vec![nick])));
 
         let hostname = match client.builder().hostname {
             Some(ref host) => host.clone(),
@@ -789,64 +799,66 @@ pub trait ClientCallbacks {
             },
         };
 
-        client.write(
+        try!(client.write(
             Message::new(
                 None, User, vec![ username, hostname, servername, realname ],
             )
-        );
+        ));
+
+        Ok(())
     }
-    #[allow(unused_variable)] fn on_client_disconnect (&mut self, client: &mut Client) { }
+    #[allow(unused_variable)] fn on_client_disconnect (&mut self, client: &mut Client) -> io::IoResult<()> { Ok(()) }
 
-    #[allow(unused_variable)] fn on_any_message (&mut self, client: &mut Client, m: &Message) { }
-    #[allow(unused_variable)] fn on_invalid_message (&mut self, client: &mut Client, m: &Message) { }
-    #[allow(unused_variable)] fn on_unknown_message (&mut self, client: &mut Client, m: &Message) { }
+    #[allow(unused_variable)] fn on_any_message (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_invalid_message (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_unknown_message (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
 
-    #[allow(unused_variable)] fn on_pass (&mut self, client: &mut Client, from: Option<&str>, pass: &str) { }
-    #[allow(unused_variable)] fn on_nick (&mut self, client: &mut Client, from: Option<&str>, nick: &str, hopcount: Option<u32>) { }
-    #[allow(unused_variable)] fn on_user (&mut self, client: &mut Client, from: Option<&str>, username: &str, hostname: &str, servername: &str, realname: &str) { }
-    #[allow(unused_variable)] fn on_server (&mut self, client: &mut Client, from: Option<&str>, servername: &str, hopcount: u32, info: &str) { }
-    #[allow(unused_variable)] fn on_oper (&mut self, client: &mut Client, from: Option<&str>, user: &str, pass: &str) { }
-    #[allow(unused_variable)] fn on_quit (&mut self, client: &mut Client, from: Option<&str>, msg: Option<&str>) { }
-    #[allow(unused_variable)] fn on_squit (&mut self, client: &mut Client, from: Option<&str>, server: &str, comment: &str) { }
+    #[allow(unused_variable)] fn on_pass (&mut self, client: &mut Client, from: Option<&str>, pass: &str) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_nick (&mut self, client: &mut Client, from: Option<&str>, nick: &str, hopcount: Option<u32>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_user (&mut self, client: &mut Client, from: Option<&str>, username: &str, hostname: &str, servername: &str, realname: &str) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_server (&mut self, client: &mut Client, from: Option<&str>, servername: &str, hopcount: u32, info: &str) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_oper (&mut self, client: &mut Client, from: Option<&str>, user: &str, pass: &str) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_quit (&mut self, client: &mut Client, from: Option<&str>, msg: Option<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_squit (&mut self, client: &mut Client, from: Option<&str>, server: &str, comment: &str) -> io::IoResult<()> { Ok(()) }
 
-    #[allow(unused_variable)] fn on_join (&mut self, client: &mut Client, from: Option<&str>, channels: Vec<&str>, keys: Vec<&str>) { }
-    #[allow(unused_variable)] fn on_part (&mut self, client: &mut Client, from: Option<&str>, channels: Vec<&str>) { }
-    #[allow(unused_variable)] fn on_channel_mode (&mut self, client: &mut Client, from: Option<&str>, channel: &str, modes: &str, params: Vec<&str>) { }
-    #[allow(unused_variable)] fn on_user_mode (&mut self, client: &mut Client, from: Option<&str>, nickname: &str, modes: &str) { }
-    #[allow(unused_variable)] fn on_topic (&mut self, client: &mut Client, from: Option<&str>, channel: &str, topic: Option<&str>) { }
-    #[allow(unused_variable)] fn on_names (&mut self, client: &mut Client, from: Option<&str>, channels: Vec<&str>) { }
-    #[allow(unused_variable)] fn on_list (&mut self, client: &mut Client, from: Option<&str>, channels: Vec<&str>, server: Option<&str>) { }
-    #[allow(unused_variable)] fn on_invite (&mut self, client: &mut Client, from: Option<&str>, nickname: &str, channel: &str) { }
-    #[allow(unused_variable)] fn on_kick (&mut self, client: &mut Client, from: Option<&str>, channel: &str, user: &str, comment: Option<&str>) { }
+    #[allow(unused_variable)] fn on_join (&mut self, client: &mut Client, from: Option<&str>, channels: Vec<&str>, keys: Vec<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_part (&mut self, client: &mut Client, from: Option<&str>, channels: Vec<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_channel_mode (&mut self, client: &mut Client, from: Option<&str>, channel: &str, modes: &str, params: Vec<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_user_mode (&mut self, client: &mut Client, from: Option<&str>, nickname: &str, modes: &str) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_topic (&mut self, client: &mut Client, from: Option<&str>, channel: &str, topic: Option<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_names (&mut self, client: &mut Client, from: Option<&str>, channels: Vec<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_list (&mut self, client: &mut Client, from: Option<&str>, channels: Vec<&str>, server: Option<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_invite (&mut self, client: &mut Client, from: Option<&str>, nickname: &str, channel: &str) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_kick (&mut self, client: &mut Client, from: Option<&str>, channel: &str, user: &str, comment: Option<&str>) -> io::IoResult<()> { Ok(()) }
 
-    #[allow(unused_variable)] fn on_version (&mut self, client: &mut Client, from: Option<&str>, server: Option<&str>) { }
-    #[allow(unused_variable)] fn on_stats (&mut self, client: &mut Client, from: Option<&str>, query: Option<&str>, server: Option<&str>) { }
-    #[allow(unused_variable)] fn on_links (&mut self, client: &mut Client, from: Option<&str>, remote_server: Option<&str>, server_mask: Option<&str>) { }
-    #[allow(unused_variable)] fn on_time (&mut self, client: &mut Client, from: Option<&str>, server: Option<&str>) { }
-    #[allow(unused_variable)] fn on_connect (&mut self, client: &mut Client, from: Option<&str>, target_server: &str, port: Option<u16>, remote_server: Option<&str>) { }
-    #[allow(unused_variable)] fn on_trace (&mut self, client: &mut Client, from: Option<&str>, server: Option<&str>) { }
-    #[allow(unused_variable)] fn on_admin (&mut self, client: &mut Client, from: Option<&str>, server: Option<&str>) { }
-    #[allow(unused_variable)] fn on_info (&mut self, client: &mut Client, from: Option<&str>, server: Option<&str>) { }
+    #[allow(unused_variable)] fn on_version (&mut self, client: &mut Client, from: Option<&str>, server: Option<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_stats (&mut self, client: &mut Client, from: Option<&str>, query: Option<&str>, server: Option<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_links (&mut self, client: &mut Client, from: Option<&str>, remote_server: Option<&str>, server_mask: Option<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_time (&mut self, client: &mut Client, from: Option<&str>, server: Option<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_connect (&mut self, client: &mut Client, from: Option<&str>, target_server: &str, port: Option<u16>, remote_server: Option<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_trace (&mut self, client: &mut Client, from: Option<&str>, server: Option<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_admin (&mut self, client: &mut Client, from: Option<&str>, server: Option<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_info (&mut self, client: &mut Client, from: Option<&str>, server: Option<&str>) -> io::IoResult<()> { Ok(()) }
 
-    #[allow(unused_variable)] fn on_privmsg (&mut self, client: &mut Client, from: Option<&str>, receivers: Vec<&str>, text: &str) { }
-    #[allow(unused_variable)] fn on_notice (&mut self, client: &mut Client, from: Option<&str>, nickname: &str, text: &str) { }
-    #[allow(unused_variable)] fn on_who (&mut self, client: &mut Client, from: Option<&str>, name: &str, o: bool) { }
-    #[allow(unused_variable)] fn on_whois (&mut self, client: &mut Client, from: Option<&str>, server: Option<&str>, nickmasks: Vec<&str>) { }
-    #[allow(unused_variable)] fn on_whowas (&mut self, client: &mut Client, from: Option<&str>, nickname: &str, count: Option<u32>, server: Option<&str>) { }
+    #[allow(unused_variable)] fn on_privmsg (&mut self, client: &mut Client, from: Option<&str>, receivers: Vec<&str>, text: &str) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_notice (&mut self, client: &mut Client, from: Option<&str>, nickname: &str, text: &str) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_who (&mut self, client: &mut Client, from: Option<&str>, name: &str, o: bool) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_whois (&mut self, client: &mut Client, from: Option<&str>, server: Option<&str>, nickmasks: Vec<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_whowas (&mut self, client: &mut Client, from: Option<&str>, nickname: &str, count: Option<u32>, server: Option<&str>) -> io::IoResult<()> { Ok(()) }
 
-    #[allow(unused_variable)] fn on_kill (&mut self, client: &mut Client, from: Option<&str>, nickname: &str, comment: &str) { }
-    #[allow(unused_variable)] fn on_ping (&mut self, client: &mut Client, from: Option<&str>, server1: &str, server2: Option<&str>) { }
-    #[allow(unused_variable)] fn on_pong (&mut self, client: &mut Client, from: Option<&str>, daemon1: &str, daemon2: Option<&str>) { }
-    #[allow(unused_variable)] fn on_error (&mut self, client: &mut Client, from: Option<&str>, message: &str) { }
+    #[allow(unused_variable)] fn on_kill (&mut self, client: &mut Client, from: Option<&str>, nickname: &str, comment: &str) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_ping (&mut self, client: &mut Client, from: Option<&str>, server1: &str, server2: Option<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_pong (&mut self, client: &mut Client, from: Option<&str>, daemon1: &str, daemon2: Option<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_error (&mut self, client: &mut Client, from: Option<&str>, message: &str) -> io::IoResult<()> { Ok(()) }
 
-    #[allow(unused_variable)] fn on_away (&mut self, client: &mut Client, from: Option<&str>, message: Option<&str>) { }
-    #[allow(unused_variable)] fn on_rehash (&mut self, client: &mut Client, from: Option<&str>) { }
-    #[allow(unused_variable)] fn on_restart (&mut self, client: &mut Client, from: Option<&str>) { }
-    #[allow(unused_variable)] fn on_summon (&mut self, client: &mut Client, from: Option<&str>, user: &str, server: Option<&str>) { }
-    #[allow(unused_variable)] fn on_users (&mut self, client: &mut Client, from: Option<&str>, server: Option<&str>) { }
-    #[allow(unused_variable)] fn on_wallops (&mut self, client: &mut Client, from: Option<&str>, text: &str) { }
-    #[allow(unused_variable)] fn on_userhost (&mut self, client: &mut Client, from: Option<&str>, nicknames: &[&str]) { }
-    #[allow(unused_variable)] fn on_ison (&mut self, client: &mut Client, from: Option<&str>, nicknames: &[&str]) { }
+    #[allow(unused_variable)] fn on_away (&mut self, client: &mut Client, from: Option<&str>, message: Option<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rehash (&mut self, client: &mut Client, from: Option<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_restart (&mut self, client: &mut Client, from: Option<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_summon (&mut self, client: &mut Client, from: Option<&str>, user: &str, server: Option<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_users (&mut self, client: &mut Client, from: Option<&str>, server: Option<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_wallops (&mut self, client: &mut Client, from: Option<&str>, text: &str) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_userhost (&mut self, client: &mut Client, from: Option<&str>, nicknames: &[&str]) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_ison (&mut self, client: &mut Client, from: Option<&str>, nicknames: &[&str]) -> io::IoResult<()> { Ok(()) }
 }
 
 fn is_channel (name: &str) -> bool {

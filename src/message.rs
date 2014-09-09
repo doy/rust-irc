@@ -45,30 +45,33 @@ impl Message {
         &self.params
     }
 
-    pub fn write_protocol_string<W: Writer> (&self, w: &mut W) {
+    pub fn write_protocol_string<W: Writer> (&self, w: &mut W) -> io::IoResult<()> {
         match self.from {
-            Some(ref f) => { write!(w, ":{} ", f); },
+            Some(ref f) => { try!(write!(w, ":{} ", f)) },
             None => {},
         }
 
-        write!(w, "{}", self.message_type);
+        try!(write!(w, "{}", self.message_type));
 
         for param in self.params.iter() {
             if param.as_slice().contains_char(' ') {
-                write!(w, " :{}", param);
+                try!(write!(w, " :{}", param));
             }
             else {
-                write!(w, " {}", param);
+                try!(write!(w, " {}", param));
             }
         }
 
-        write!(w, "\r\n");
-        w.flush();
+        try!(write!(w, "\r\n"));
+        try!(w.flush());
+
+        Ok(())
     }
 
     pub fn to_protocol_string (&self) -> String {
         let mut w = io::MemWriter::new();
-        self.write_protocol_string(&mut w);
+        // this should never fail, so unwrap is fine
+        self.write_protocol_string(&mut w).unwrap();
         // XXX error handling, encoding
         String::from_utf8(w.unwrap()).unwrap()
     }
