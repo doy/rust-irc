@@ -72,8 +72,8 @@ impl Message {
         let mut w = io::MemWriter::new();
         // this should never fail, so unwrap is fine
         self.write_protocol_string(&mut w).unwrap();
-        // XXX error handling, encoding
-        String::from_utf8(w.unwrap()).unwrap()
+        // XXX encoding
+        String::from_utf8_lossy(w.unwrap().as_slice()).into_string()
     }
 
     fn parse_params(params: &str) -> Vec<String> {
