@@ -195,6 +195,13 @@ pub trait ClientCallbacks {
         let err = client.run_loop(|client, m| {
             try!(self.on_any_message(client, m));
 
+            if m.is_reply() {
+                try!(self.on_reply(client, m));
+            }
+            else {
+                try!(self.on_command(client, m));
+            }
+
             let from = m.from().as_ref().map(|s| s.as_slice());
             let p = m.params().as_slice();
             match *m.message_type() {
@@ -832,6 +839,9 @@ pub trait ClientCallbacks {
     #[allow(unused_variable)] fn on_any_message (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
     #[allow(unused_variable)] fn on_invalid_message (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
     #[allow(unused_variable)] fn on_unknown_message (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+
+    #[allow(unused_variable)] fn on_command (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_reply (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
 
     #[allow(unused_variable)] fn on_pass (&mut self, client: &mut Client, from: Option<&str>, pass: &str) -> io::IoResult<()> { Ok(()) }
     #[allow(unused_variable)] fn on_nick (&mut self, client: &mut Client, from: Option<&str>, nick: &str, hopcount: Option<u32>) -> io::IoResult<()> { Ok(()) }
