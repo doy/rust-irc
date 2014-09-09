@@ -1,4 +1,4 @@
-use std::{io, str};
+use std::io;
 
 use constants::{
     Pass,
@@ -45,6 +45,12 @@ use constants::{
     Reply,
 };
 use message::Message;
+
+pub enum MessageError {
+    ParseError(&'static str),
+    IoError(io::IoError),
+}
+pub type MessageResult = Result<Message, MessageError>;
 
 pub struct ClientBuilder {
     nick: String,
@@ -132,14 +138,20 @@ impl Client {
         }
     }
 
-    pub fn read (&mut self) -> Message {
+    pub fn read (&mut self) -> MessageResult {
         // \n isn't valid inside a message, so this should be fine. if the \n
         // we find isn't preceded by a \r, this will be caught by the message
         // parser.
-        let buf = self.conn().read_until(b'\n');
+        let buf = match self.conn().read_until(b'\n') {
+            Ok(b) => b,
+            Err(e) => return Err(IoError(e)),
+        };
+
         // XXX handle different encodings
-        // XXX proper error handling
-        Message::parse(str::from_utf8(buf.unwrap().as_slice()).unwrap()).unwrap()
+        match Message::parse(String::from_utf8_lossy(buf.as_slice()).as_slice()) {
+            Ok(m) => Ok(m),
+            Err(s) => Err(ParseError(s)),
+        }
     }
 
     pub fn write (&mut self, msg: Message) -> io::IoResult<()> {
@@ -149,7 +161,15 @@ impl Client {
 
     pub fn run_loop (&mut self, handler: |&mut Client, &Message| -> io::IoResult<()>) -> io::IoError {
         loop {
-            let m = self.read();
+            let m = match self.read() {
+                Ok(m) => m,
+                Err(ParseError(_e)) => {
+                    // XXX this shouldn't stop the loop, but it's not clear
+                    // what it should do - warn maybe?
+                    continue
+                },
+                Err(IoError(e)) => return e,
+            };
             match handler(self, &m) {
                 Err(e) => return e,
                 _ => {},
