@@ -45,6 +45,10 @@ impl Message {
         &self.params
     }
 
+    pub fn is_reply (&self) -> bool {
+        self.message_type.is_reply()
+    }
+
     pub fn write_protocol_string<W: Writer> (&self, w: &mut W) -> io::IoResult<()> {
         match self.from {
             Some(ref f) => { try!(write!(w, ":{} ", f)) },
