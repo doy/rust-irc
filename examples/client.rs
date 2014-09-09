@@ -1,6 +1,6 @@
 extern crate irc;
 
-use irc::constants::{Ping, Pong};
+use irc::constants::Pong;
 use irc::Client;
 
 use std::io;
@@ -28,14 +28,16 @@ impl irc::Client for ExampleClient {
         }
     }
 
-    fn on_message (client: &mut ExampleClient, m: &irc::Message) {
+    fn on_any_message (_client: &mut ExampleClient, m: &irc::Message) {
         print!("{}", m.to_protocol_string());
-        match *m.message_type() {
-            Ping => {
-                client.write(irc::Message::new(None, Pong, m.params().clone()));
-            },
-            _ => {},
-        }
+    }
+
+    fn on_ping (client: &mut ExampleClient, _from: Option<&str>, server1: &str, server2: Option<&str>) {
+        let params = match server2 {
+            Some(server2) => vec![server1.to_string(), server2.to_string()],
+            None => vec![server1.to_string()],
+        };
+        client.write(irc::Message::new(None, Pong, params));
     }
 }
 
