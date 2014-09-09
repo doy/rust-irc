@@ -867,7 +867,13 @@ pub trait ClientCallbacks {
     #[allow(unused_variable)] fn on_whowas (&mut self, client: &mut Client, from: Option<&str>, nickname: &str, count: Option<u32>, server: Option<&str>) -> io::IoResult<()> { Ok(()) }
 
     #[allow(unused_variable)] fn on_kill (&mut self, client: &mut Client, from: Option<&str>, nickname: &str, comment: &str) -> io::IoResult<()> { Ok(()) }
-    #[allow(unused_variable)] fn on_ping (&mut self, client: &mut Client, from: Option<&str>, server1: &str, server2: Option<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_ping (&mut self, client: &mut Client, from: Option<&str>, server1: &str, server2: Option<&str>) -> io::IoResult<()> {
+        let params = match server2 {
+            Some(server2) => vec![server1.to_string(), server2.to_string()],
+            None => vec![server1.to_string()],
+        };
+        client.write(Message::new(None, Pong, params))
+    }
     #[allow(unused_variable)] fn on_pong (&mut self, client: &mut Client, from: Option<&str>, daemon1: &str, daemon2: Option<&str>) -> io::IoResult<()> { Ok(()) }
     #[allow(unused_variable)] fn on_error (&mut self, client: &mut Client, from: Option<&str>, message: &str) -> io::IoResult<()> { Ok(()) }
 
