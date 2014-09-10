@@ -228,17 +228,17 @@ impl Client {
         ))
     }
 
-    pub fn join (&mut self, channels: Vec<&str>, keys: Vec<&str>) -> io::IoResult<()> {
+    pub fn join (&mut self, channels: &[&str], keys: &[&str]) -> io::IoResult<()> {
         let mut params = vec![channels.connect(",")];
         if keys.len() > 0 {
             params.push(keys.connect(","));
         }
         self.write(Message::new(None, Join, params))
     }
-    pub fn part (&mut self, channels: Vec<&str>) -> io::IoResult<()> {
+    pub fn part (&mut self, channels: &[&str]) -> io::IoResult<()> {
         self.write(Message::new(None, Part, vec![channels.connect(",")]))
     }
-    pub fn channel_mode (&mut self, channel: &str, modes: &str, params: Vec<&str>) -> io::IoResult<()> {
+    pub fn channel_mode (&mut self, channel: &str, modes: &str, params: &[&str]) -> io::IoResult<()> {
         let p: Vec<String> = params.iter().map(|s| s.to_string()).collect();
         self.write(Message::new(
             None,
@@ -262,7 +262,7 @@ impl Client {
             ].append(topic.map(|s| s.to_string()).as_slice())
         ))
     }
-    pub fn names (&mut self, channels: Vec<&str>) -> io::IoResult<()> {
+    pub fn names (&mut self, channels: &[&str]) -> io::IoResult<()> {
         self.write(Message::new(
             None,
             Topic,
@@ -274,7 +274,7 @@ impl Client {
             }
         ))
     }
-    pub fn list (&mut self, channels: Vec<&str>, server: Option<&str>) -> io::IoResult<()> {
+    pub fn list (&mut self, channels: &[&str], server: Option<&str>) -> io::IoResult<()> {
         let mut params = vec![];
         if channels.len() > 0 {
             params.push(channels.connect(","));
@@ -365,7 +365,7 @@ impl Client {
         ))
     }
 
-    pub fn privmsg (&mut self, receivers: Vec<&str>, text: &str) -> io::IoResult<()> {
+    pub fn privmsg (&mut self, receivers: &[&str], text: &str) -> io::IoResult<()> {
         self.write(Message::new(
             None,
             Privmsg,
@@ -392,7 +392,7 @@ impl Client {
         }
         self.write(Message::new(None, Who, params))
     }
-    pub fn whois (&mut self, server: Option<&str>, nickmasks: Vec<&str>) -> io::IoResult<()> {
+    pub fn whois (&mut self, server: Option<&str>, nickmasks: &[&str]) -> io::IoResult<()> {
         self.write(Message::new(
             None,
             Whois,
@@ -585,17 +585,20 @@ pub trait ClientCallbacks {
                 Join => {
                     match (p.get(0), p.get(1)) {
                         (Some(ref channels), Some(ref keys)) => {
+                            let channels: Vec<&str> = channels.as_slice().split(',').collect();
+                            let keys: Vec<&str> = keys.as_slice().split(',').collect();
                             self.on_join(
                                 client, from,
-                                channels.as_slice().split(',').collect(),
-                                keys.as_slice().split(',').collect()
+                                channels.as_slice(),
+                                keys.as_slice()
                             )
                         },
                         (Some(ref channels), None) => {
+                            let channels: Vec<&str> = channels.as_slice().split(',').collect();
                             self.on_join(
                                 client, from,
-                                channels.as_slice().split(',').collect(),
-                                vec![]
+                                channels.as_slice(),
+                                []
                             )
                         },
                         _ => self.on_invalid_message(client, m),
@@ -604,9 +607,10 @@ pub trait ClientCallbacks {
                 Part => {
                     match (p.get(0),) {
                         (Some(ref channels),) => {
+                            let channels: Vec<&str> = channels.as_slice().split(',').collect();
                             self.on_part(
                                 client, from,
-                                channels.as_slice().split(',').collect()
+                                channels.as_slice()
                             )
                         },
                         _ => self.on_invalid_message(client, m),
@@ -616,10 +620,11 @@ pub trait ClientCallbacks {
                     match (p.get(0), p.get(1)) {
                         (Some(name), Some(modes))
                             if is_channel(name.as_slice()) => {
+                            let params: Vec<&str> = p.slice_from(2).iter().map(|s| s.as_slice()).collect();
                             self.on_channel_mode(
                                 client, from,
                                 name.as_slice(), modes.as_slice(),
-                                p.slice_from(2).iter().map(|s| s.as_slice()).collect()
+                                params.as_slice()
                             )
                         },
                         (Some(name), Some(modes)) => {
@@ -651,15 +656,16 @@ pub trait ClientCallbacks {
                 Names => {
                     match (p.get(0),) {
                         (Some(ref channels),) => {
+                            let channels: Vec<&str> = channels.as_slice().split(',').collect();
                             self.on_names(
                                 client, from,
-                                channels.as_slice().split(',').collect()
+                                channels.as_slice()
                             )
                         },
                         _ => {
                             self.on_names(
                                 client, from,
-                                vec![]
+                                []
                             )
                         },
                     }
@@ -667,23 +673,25 @@ pub trait ClientCallbacks {
                 List => {
                     match (p.get(0), p.get(1)) {
                         (Some(ref channels), Some(ref server)) => {
+                            let channels: Vec<&str> = channels.as_slice().split(',').collect();
                             self.on_list(
                                 client, from,
-                                channels.as_slice().split(',').collect(),
+                                channels.as_slice(),
                                 Some(server.as_slice())
                             )
                         },
                         (Some(ref channels), None) => {
+                            let channels: Vec<&str> = channels.as_slice().split(',').collect();
                             self.on_list(
                                 client, from,
-                                channels.as_slice().split(',').collect(),
+                                channels.as_slice(),
                                 None
                             )
                         },
                         _ => {
                             self.on_list(
                                 client, from,
-                                vec![], None
+                                [], None
                             )
                         },
                     }
@@ -834,9 +842,10 @@ pub trait ClientCallbacks {
                 Privmsg => {
                     match (p.get(0), p.get(1)) {
                         (Some(ref receivers), Some(ref text)) => {
+                            let receivers: Vec<&str> = receivers.as_slice().split(',').collect();
                             self.on_privmsg(
                                 client, from,
-                                receivers.as_slice().split(',').collect(),
+                                receivers.as_slice(),
                                 text.as_slice()
                             )
                         },
@@ -882,17 +891,19 @@ pub trait ClientCallbacks {
                 Whois => {
                     match (p.get(0), p.get(1)) {
                         (Some(ref server), Some(ref nickmasks)) => {
+                            let nickmasks: Vec<&str> = nickmasks.as_slice().split(',').collect();
                             self.on_whois(
                                 client, from,
                                 Some(server.as_slice()),
-                                nickmasks.as_slice().split(',').collect()
+                                nickmasks.as_slice()
                             )
                         },
                         (Some(ref nickmasks), None) => {
+                            let nickmasks: Vec<&str> = nickmasks.as_slice().split(',').collect();
                             self.on_whois(
                                 client, from,
                                 None,
-                                nickmasks.as_slice().split(',').collect()
+                                nickmasks.as_slice()
                             )
                         },
                         _ => self.on_invalid_message(client, m),
@@ -1138,13 +1149,13 @@ pub trait ClientCallbacks {
     #[allow(unused_variable)] fn on_quit (&mut self, client: &mut Client, from: Option<&str>, msg: Option<&str>) -> io::IoResult<()> { Ok(()) }
     #[allow(unused_variable)] fn on_squit (&mut self, client: &mut Client, from: Option<&str>, server: &str, comment: &str) -> io::IoResult<()> { Ok(()) }
 
-    #[allow(unused_variable)] fn on_join (&mut self, client: &mut Client, from: Option<&str>, channels: Vec<&str>, keys: Vec<&str>) -> io::IoResult<()> { Ok(()) }
-    #[allow(unused_variable)] fn on_part (&mut self, client: &mut Client, from: Option<&str>, channels: Vec<&str>) -> io::IoResult<()> { Ok(()) }
-    #[allow(unused_variable)] fn on_channel_mode (&mut self, client: &mut Client, from: Option<&str>, channel: &str, modes: &str, params: Vec<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_join (&mut self, client: &mut Client, from: Option<&str>, channels: &[&str], keys: &[&str]) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_part (&mut self, client: &mut Client, from: Option<&str>, channels: &[&str]) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_channel_mode (&mut self, client: &mut Client, from: Option<&str>, channel: &str, modes: &str, params: &[&str]) -> io::IoResult<()> { Ok(()) }
     #[allow(unused_variable)] fn on_user_mode (&mut self, client: &mut Client, from: Option<&str>, nickname: &str, modes: &str) -> io::IoResult<()> { Ok(()) }
     #[allow(unused_variable)] fn on_topic (&mut self, client: &mut Client, from: Option<&str>, channel: &str, topic: Option<&str>) -> io::IoResult<()> { Ok(()) }
-    #[allow(unused_variable)] fn on_names (&mut self, client: &mut Client, from: Option<&str>, channels: Vec<&str>) -> io::IoResult<()> { Ok(()) }
-    #[allow(unused_variable)] fn on_list (&mut self, client: &mut Client, from: Option<&str>, channels: Vec<&str>, server: Option<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_names (&mut self, client: &mut Client, from: Option<&str>, channels: &[&str]) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_list (&mut self, client: &mut Client, from: Option<&str>, channels: &[&str], server: Option<&str>) -> io::IoResult<()> { Ok(()) }
     #[allow(unused_variable)] fn on_invite (&mut self, client: &mut Client, from: Option<&str>, nickname: &str, channel: &str) -> io::IoResult<()> { Ok(()) }
     #[allow(unused_variable)] fn on_kick (&mut self, client: &mut Client, from: Option<&str>, channel: &str, user: &str, comment: Option<&str>) -> io::IoResult<()> { Ok(()) }
 
@@ -1157,10 +1168,10 @@ pub trait ClientCallbacks {
     #[allow(unused_variable)] fn on_admin (&mut self, client: &mut Client, from: Option<&str>, server: Option<&str>) -> io::IoResult<()> { Ok(()) }
     #[allow(unused_variable)] fn on_info (&mut self, client: &mut Client, from: Option<&str>, server: Option<&str>) -> io::IoResult<()> { Ok(()) }
 
-    #[allow(unused_variable)] fn on_privmsg (&mut self, client: &mut Client, from: Option<&str>, receivers: Vec<&str>, text: &str) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_privmsg (&mut self, client: &mut Client, from: Option<&str>, receivers: &[&str], text: &str) -> io::IoResult<()> { Ok(()) }
     #[allow(unused_variable)] fn on_notice (&mut self, client: &mut Client, from: Option<&str>, nickname: &str, text: &str) -> io::IoResult<()> { Ok(()) }
     #[allow(unused_variable)] fn on_who (&mut self, client: &mut Client, from: Option<&str>, name: &str, o: bool) -> io::IoResult<()> { Ok(()) }
-    #[allow(unused_variable)] fn on_whois (&mut self, client: &mut Client, from: Option<&str>, server: Option<&str>, nickmasks: Vec<&str>) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_whois (&mut self, client: &mut Client, from: Option<&str>, server: Option<&str>, nickmasks: &[&str]) -> io::IoResult<()> { Ok(()) }
     #[allow(unused_variable)] fn on_whowas (&mut self, client: &mut Client, from: Option<&str>, nickname: &str, count: Option<u32>, server: Option<&str>) -> io::IoResult<()> { Ok(()) }
 
     #[allow(unused_variable)] fn on_kill (&mut self, client: &mut Client, from: Option<&str>, nickname: &str, comment: &str) -> io::IoResult<()> { Ok(()) }
