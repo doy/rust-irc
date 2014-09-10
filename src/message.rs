@@ -1,4 +1,4 @@
-use constants::MessageType;
+use constants::{MessageType, MAX_MESSAGE_LENGTH};
 
 use std::io;
 
@@ -15,6 +15,10 @@ impl Message {
     }
 
     pub fn parse (msg: &str) -> Result<Message, &'static str> {
+        if msg.len() > MAX_MESSAGE_LENGTH {
+            return Err("message too long");
+        }
+
         let message_parser = regex!(r"^(?::([^ ]+) )?([A-Z]+|[0-9]{3}) ([^\r\n\0]*)\r\n$");
         match message_parser.captures(msg) {
             Some(captures) => {
@@ -50,23 +54,32 @@ impl Message {
     }
 
     pub fn write_protocol_string<W: Writer> (&self, w: &mut W) -> io::IoResult<()> {
-        match self.from {
-            Some(ref f) => { try!(write!(w, ":{} ", f)) },
-            None => {},
+        let mut buf = [0u8, ..MAX_MESSAGE_LENGTH];
+
+        {
+            let mut bufw = io::BufWriter::new(buf);
+
+            match self.from {
+                Some(ref f) => { try!(write!(bufw, ":{} ", f)) },
+                None => {},
+            }
+
+            try!(write!(bufw, "{}", self.message_type));
+
+            for param in self.params.iter() {
+                if param.as_slice().contains_char(' ') {
+                    try!(write!(bufw, " :{}", param));
+                }
+                else {
+                    try!(write!(bufw, " {}", param));
+                }
+            }
+
+            try!(write!(bufw, "\r\n"));
         }
 
-        try!(write!(w, "{}", self.message_type));
-
-        for param in self.params.iter() {
-            if param.as_slice().contains_char(' ') {
-                try!(write!(w, " :{}", param));
-            }
-            else {
-                try!(write!(w, " {}", param));
-            }
-        }
-
-        try!(write!(w, "\r\n"));
+        let len = buf.iter().position(|&c| c == 0).unwrap_or(MAX_MESSAGE_LENGTH);
+        try!(w.write(buf.slice(0, len)));
         try!(w.flush());
 
         Ok(())

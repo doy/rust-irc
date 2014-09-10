@@ -142,6 +142,9 @@ impl Client {
         // \n isn't valid inside a message, so this should be fine. if the \n
         // we find isn't preceded by a \r, this will be caught by the message
         // parser.
+        // XXX we should only be reading 512 bytes here, and throwing an error
+        // otherwise - or else we could end up reading an unbounded amount of
+        // data into memory
         let buf = match self.conn().read_until(b'\n') {
             Ok(b) => b,
             Err(e) => return Err(IoError(e)),

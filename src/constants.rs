@@ -337,7 +337,7 @@ pub static ERR_NOSERVICEHOST: u16 = 492;
 pub static RPL_TOPICDATE: u16 = 333; // date the topic was set, in seconds since the epoch
 pub static ERR_MSGFORBIDDEN: u16 = 505; // freenode blocking privmsg from unreged users
 
-pub static MAX_MESSAGE_LENGTH: i32 = 512;
+pub static MAX_MESSAGE_LENGTH: uint = 512;
 
 #[test]
 fn test_message_type () {
