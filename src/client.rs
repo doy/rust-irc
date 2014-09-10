@@ -191,6 +191,283 @@ impl Client {
     pub fn run_loop_with_callbacks<T: ClientCallbacks> (mut self, cbs: T) -> io::IoError {
         cbs.run_loop(&mut self)
     }
+
+    pub fn pass (&mut self, pass: &str) -> io::IoResult<()> {
+        self.write(Message::new(None, Pass, vec![pass.to_string()]))
+    }
+    pub fn nick (&mut self, nick: &str) -> io::IoResult<()> {
+        self.write(Message::new(None, Nick, vec![nick.to_string()]))
+    }
+    pub fn user (&mut self, username: &str, hostname: &str, servername: &str, realname: &str) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            User,
+            vec![
+                username.to_string(),
+                hostname.to_string(),
+                servername.to_string(),
+                realname.to_string(),
+            ]
+        ))
+    }
+    pub fn oper (&mut self, user: &str, pass: &str) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Oper,
+            vec![
+                user.to_string(),
+                pass.to_string(),
+            ]
+        ))
+    }
+    pub fn quit (&mut self, msg: Option<&str>) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Quit,
+            vec![].append(msg.map(|s| s.to_string()).as_slice())
+        ))
+    }
+
+    pub fn join (&mut self, channels: Vec<&str>, keys: Vec<&str>) -> io::IoResult<()> {
+        let mut params = vec![channels.connect(",")];
+        if keys.len() > 0 {
+            params.push(keys.connect(","));
+        }
+        self.write(Message::new(None, Join, params))
+    }
+    pub fn part (&mut self, channels: Vec<&str>) -> io::IoResult<()> {
+        self.write(Message::new(None, Part, vec![channels.connect(",")]))
+    }
+    pub fn channel_mode (&mut self, channel: &str, modes: &str, params: Vec<&str>) -> io::IoResult<()> {
+        let p: Vec<String> = params.iter().map(|s| s.to_string()).collect();
+        self.write(Message::new(
+            None,
+            Mode,
+            vec![channel.to_string(), modes.to_string()].append(p.as_slice())
+        ))
+    }
+    pub fn user_mode (&mut self, nickname: &str, modes: &str) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Mode,
+            vec![nickname.to_string(), modes.to_string()]
+        ))
+    }
+    pub fn topic (&mut self, channel: &str, topic: Option<&str>) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Topic,
+            vec![
+                channel.to_string()
+            ].append(topic.map(|s| s.to_string()).as_slice())
+        ))
+    }
+    pub fn names (&mut self, channels: Vec<&str>) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Topic,
+            if channels.len() > 0 {
+                vec![channels.connect(",")]
+            }
+            else {
+                vec![]
+            }
+        ))
+    }
+    pub fn list (&mut self, channels: Vec<&str>, server: Option<&str>) -> io::IoResult<()> {
+        let mut params = vec![];
+        if channels.len() > 0 {
+            params.push(channels.connect(","));
+        }
+        self.write(Message::new(
+            None,
+            List,
+            params.append(server.map(|s| s.to_string()).as_slice())
+        ))
+    }
+    pub fn invite (&mut self, nickname: &str, channel: &str) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Invite,
+            vec![nickname.to_string(), channel.to_string()]
+        ))
+    }
+    pub fn kick (&mut self, channel: &str, user: &str, comment: Option<&str>) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Kick,
+            vec![
+                channel.to_string(),
+                user.to_string(),
+            ].append(comment.map(|s| s.to_string()).as_slice())
+        ))
+    }
+
+    pub fn version (&mut self, server: Option<&str>) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Version,
+            vec![].append(server.map(|s| s.to_string()).as_slice())
+        ))
+    }
+    pub fn stats (&mut self, query: Option<&str>, server: Option<&str>) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Stats,
+            vec![].append(query.map(|s| s.to_string()).as_slice())
+                  .append(server.map(|s| s.to_string()).as_slice())
+        ))
+    }
+    pub fn links (&mut self, remote_server: Option<&str>, server_mask: Option<&str>) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Links,
+            vec![].append(remote_server.map(|s| s.to_string()).as_slice())
+                  .append(server_mask.map(|s| s.to_string()).as_slice())
+        ))
+    }
+    pub fn time (&mut self, server: Option<&str>) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Time,
+            vec![].append(server.map(|s| s.to_string()).as_slice())
+        ))
+    }
+    pub fn connect (&mut self, target_server: &str, port: Option<u16>, remote_server: Option<&str>) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Connect,
+            vec![
+                target_server.to_string(),
+            ].append(port.map(|s| s.to_string()).as_slice())
+             .append(remote_server.map(|s| s.to_string()).as_slice())
+        ))
+    }
+    pub fn trace (&mut self, server: Option<&str>) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Trace,
+            vec![].append(server.map(|s| s.to_string()).as_slice())
+        ))
+    }
+    pub fn admin (&mut self, server: Option<&str>) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Admin,
+            vec![].append(server.map(|s| s.to_string()).as_slice())
+        ))
+    }
+    pub fn info (&mut self, server: Option<&str>) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Info,
+            vec![].append(server.map(|s| s.to_string()).as_slice())
+        ))
+    }
+
+    pub fn privmsg (&mut self, receivers: Vec<&str>, text: &str) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Privmsg,
+            vec![
+                receivers.connect(","),
+                text.to_string(),
+            ]
+        ))
+    }
+    pub fn notice (&mut self, nickname: &str, text: &str) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Notice,
+            vec![
+                nickname.to_string(),
+                text.to_string(),
+            ]
+        ))
+    }
+    pub fn who (&mut self, name: &str, o: bool) -> io::IoResult<()> {
+        let mut params = vec![name.to_string()];
+        if o {
+            params.push("o".to_string());
+        }
+        self.write(Message::new(None, Who, params))
+    }
+    pub fn whois (&mut self, server: Option<&str>, nickmasks: Vec<&str>) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Whois,
+            vec![].append(server.map(|s| s.to_string()).as_slice())
+                  .append([nickmasks.connect(",")])
+        ))
+    }
+    pub fn whowas (&mut self, nickname: &str, count: Option<u32>, server: Option<&str>) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Whowas,
+            vec![
+                nickname.to_string(),
+            ].append(count.map(|s| s.to_string()).as_slice())
+             .append(server.map(|s| s.to_string()).as_slice())
+        ))
+    }
+
+    pub fn kill (&mut self, nickname: &str, comment: &str) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Kill,
+            vec![nickname.to_string(), comment.to_string()]
+        ))
+    }
+    pub fn pong (&mut self, daemon1: &str) -> io::IoResult<()> {
+        self.write(Message::new(None, Pong, vec![daemon1.to_string()]))
+    }
+
+    pub fn away (&mut self, message: Option<&str>) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Away,
+            vec![].append(message.map(|s| s.to_string()).as_slice())
+        ))
+    }
+    pub fn rehash (&mut self) -> io::IoResult<()> {
+        self.write(Message::new(None, Rehash, vec![]))
+    }
+    pub fn restart (&mut self) -> io::IoResult<()> {
+        self.write(Message::new(None, Restart, vec![]))
+    }
+    pub fn summon (&mut self, user: &str, server: Option<&str>) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Summon,
+            vec![
+                user.to_string()
+            ].append(server.map(|s| s.to_string()).as_slice())
+        ))
+    }
+    pub fn users (&mut self,  server: Option<&str>) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Users,
+            vec![].append(server.map(|s| s.to_string()).as_slice())
+        ))
+    }
+    pub fn wallops (&mut self, text: &str) -> io::IoResult<()> {
+        self.write(Message::new(None, Summon, vec![text.to_string()]))
+    }
+    pub fn userhost (&mut self, nicknames: &[&str]) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Userhost,
+            nicknames.iter().map(|s| s.to_string()).collect()
+        ))
+    }
+    pub fn ison (&mut self, nicknames: &[&str]) -> io::IoResult<()> {
+        self.write(Message::new(
+            None,
+            Ison,
+            nicknames.iter().map(|s| s.to_string()).collect()
+        ))
+    }
 }
 
 pub trait ClientCallbacks {
@@ -818,13 +1095,11 @@ pub trait ClientCallbacks {
         let realname = client.builder().realname.clone();
 
         match pass {
-            Some(pass) => {
-                try!(client.write(Message::new(None, Pass, vec![pass])));
-            },
+            Some(pass) => try!(client.pass(pass.as_slice())),
             None => {},
         }
 
-        try!(client.write(Message::new(None, Nick, vec![nick])));
+        try!(client.nick(nick.as_slice()));
 
         let hostname = match client.builder().hostname {
             Some(ref host) => host.clone(),
@@ -837,10 +1112,11 @@ pub trait ClientCallbacks {
             },
         };
 
-        try!(client.write(
-            Message::new(
-                None, User, vec![ username, hostname, servername, realname ],
-            )
+        try!(client.user(
+            username.as_slice(),
+            hostname.as_slice(),
+            servername.as_slice(),
+            realname.as_slice(),
         ));
 
         Ok(())
@@ -889,11 +1165,7 @@ pub trait ClientCallbacks {
 
     #[allow(unused_variable)] fn on_kill (&mut self, client: &mut Client, from: Option<&str>, nickname: &str, comment: &str) -> io::IoResult<()> { Ok(()) }
     #[allow(unused_variable)] fn on_ping (&mut self, client: &mut Client, from: Option<&str>, server1: &str, server2: Option<&str>) -> io::IoResult<()> {
-        let params = match server2 {
-            Some(server2) => vec![server1.to_string(), server2.to_string()],
-            None => vec![server1.to_string()],
-        };
-        client.write(Message::new(None, Pong, params))
+        client.pong(server1)
     }
     #[allow(unused_variable)] fn on_pong (&mut self, client: &mut Client, from: Option<&str>, daemon1: &str, daemon2: Option<&str>) -> io::IoResult<()> { Ok(()) }
     #[allow(unused_variable)] fn on_error (&mut self, client: &mut Client, from: Option<&str>, message: &str) -> io::IoResult<()> { Ok(()) }
