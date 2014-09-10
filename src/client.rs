@@ -1,50 +1,6 @@
 use std::io;
 
-use constants::{
-    Pass,
-    Nick,
-    User,
-    Server,
-    Oper,
-    Quit,
-    Squit,
-    Join,
-    Part,
-    Mode,
-    Topic,
-    Names,
-    List,
-    Invite,
-    Kick,
-    Version,
-    Stats,
-    Links,
-    Time,
-    Connect,
-    Trace,
-    Admin,
-    Info,
-    Privmsg,
-    Notice,
-    Who,
-    Whois,
-    Whowas,
-    Kill,
-    Ping,
-    Pong,
-    Error,
-    Away,
-    Rehash,
-    Restart,
-    Summon,
-    Users,
-    Wallops,
-    Userhost,
-    Ison,
-    RawCommand,
-    Reply,
-    MAX_MESSAGE_LENGTH,
-};
+use constants::*;
 use message::Message;
 
 pub enum MessageError {
@@ -1084,11 +1040,174 @@ pub trait ClientCallbacks {
                     }
                 },
                 RawCommand(_) => {
-                    self.on_unknown_message(client, m)
+                    self.on_unknown_command(client, m)
                 },
-                Reply(_) => {
-                    // XXX
-                    Ok(())
+                Reply(i) => {
+                    match i {
+                        RPL_WELCOME => self.on_rpl_welcome(client, m),
+                        RPL_YOURHOST => self.on_rpl_yourhost(client, m),
+                        RPL_CREATED => self.on_rpl_created(client, m),
+                        RPL_MYINFO => self.on_rpl_myinfo(client, m),
+                        RPL_BOUNCE => self.on_rpl_bounce(client, m),
+                        RPL_USERHOST => self.on_rpl_userhost(client, m),
+                        RPL_ISON => self.on_rpl_ison(client, m),
+                        RPL_AWAY => self.on_rpl_away(client, m),
+                        RPL_UNAWAY => self.on_rpl_unaway(client, m),
+                        RPL_NOWAWAY => self.on_rpl_noaway(client, m),
+                        RPL_WHOISUSER => self.on_rpl_whoisuser(client, m),
+                        RPL_WHOISSERVER => self.on_rpl_whoisserver(client, m),
+                        RPL_WHOISOPERATOR => self.on_rpl_whoisoperator(client, m),
+                        RPL_WHOISIDLE => self.on_rpl_whoisidle(client, m),
+                        RPL_ENDOFWHOIS => self.on_rpl_endofwhois(client, m),
+                        RPL_WHOISCHANNELS => self.on_rpl_whoischannels(client, m),
+                        RPL_WHOWASUSER => self.on_rpl_whowasuser(client, m),
+                        RPL_ENDOFWHOWAS => self.on_rpl_endofwhowas(client, m),
+                        RPL_LISTSTART => self.on_rpl_liststart(client, m),
+                        RPL_LIST => self.on_rpl_list(client, m),
+                        RPL_LISTEND => self.on_rpl_listend(client, m),
+                        RPL_UNIQOPIS => self.on_rpl_uniqopis(client, m),
+                        RPL_CHANNELMODEIS => self.on_rpl_channelmodeis(client, m),
+                        RPL_NOTOPIC => self.on_rpl_notopic(client, m),
+                        RPL_TOPIC => self.on_rpl_topic(client, m),
+                        RPL_INVITING => self.on_rpl_inviting(client, m),
+                        RPL_SUMMONING => self.on_rpl_summoning(client, m),
+                        RPL_INVITELIST => self.on_rpl_invitelist(client, m),
+                        RPL_ENDOFINVITELIST => self.on_rpl_endofinvitelist(client, m),
+                        RPL_EXCEPTLIST => self.on_rpl_exceptlist(client, m),
+                        RPL_ENDOFEXCEPTLIST => self.on_rpl_endofexceptlist(client, m),
+                        RPL_VERSION => self.on_rpl_version(client, m),
+                        RPL_WHOREPLY => self.on_rpl_whoreply(client, m),
+                        RPL_ENDOFWHO => self.on_rpl_endofwho(client, m),
+                        RPL_NAMREPLY => self.on_rpl_namreply(client, m),
+                        RPL_ENDOFNAMES => self.on_rpl_endofnames(client, m),
+                        RPL_LINKS => self.on_rpl_links(client, m),
+                        RPL_ENDOFLINKS => self.on_rpl_endoflinks(client, m),
+                        RPL_BANLIST => self.on_rpl_banlist(client, m),
+                        RPL_ENDOFBANLIST => self.on_rpl_endofbanlist(client, m),
+                        RPL_INFO => self.on_rpl_info(client, m),
+                        RPL_ENDOFINFO => self.on_rpl_endofinfo(client, m),
+                        RPL_MOTDSTART => self.on_rpl_motdstart(client, m),
+                        RPL_MOTD => self.on_rpl_motd(client, m),
+                        RPL_ENDOFMOTD => self.on_rpl_endofmotd(client, m),
+                        RPL_YOUREOPER => self.on_rpl_youreoper(client, m),
+                        RPL_REHASHING => self.on_rpl_rehashing(client, m),
+                        RPL_YOURESERVICE => self.on_rpl_youreservice(client, m),
+                        RPL_TIME => self.on_rpl_time(client, m),
+                        RPL_USERSSTART => self.on_rpl_usersstart(client, m),
+                        RPL_USERS => self.on_rpl_users(client, m),
+                        RPL_ENDOFUSERS => self.on_rpl_endofusers(client, m),
+                        RPL_NOUSERS => self.on_rpl_nousers(client, m),
+                        RPL_TRACELINK => self.on_rpl_tracelink(client, m),
+                        RPL_TRACECONNECTING => self.on_rpl_traceconnecting(client, m),
+                        RPL_TRACEHANDSHAKE => self.on_rpl_tracehandshake(client, m),
+                        RPL_TRACEUNKNOWN => self.on_rpl_traceunknown(client, m),
+                        RPL_TRACEOPERATOR => self.on_rpl_traceoperator(client, m),
+                        RPL_TRACEUSER => self.on_rpl_traceuser(client, m),
+                        RPL_TRACESERVER => self.on_rpl_traceserver(client, m),
+                        RPL_TRACESERVICE => self.on_rpl_traceservice(client, m),
+                        RPL_TRACENEWTYPE => self.on_rpl_tracenewtype(client, m),
+                        RPL_TRACECLASS => self.on_rpl_traceclass(client, m),
+                        RPL_TRACERECONNECT => self.on_rpl_tracereconnect(client, m),
+                        RPL_TRACELOG => self.on_rpl_tracelog(client, m),
+                        RPL_TRACEEND => self.on_rpl_traceend(client, m),
+                        RPL_STATSLINKINFO => self.on_rpl_statslinkinfo(client, m),
+                        RPL_STATSCOMMANDS => self.on_rpl_statscommands(client, m),
+                        RPL_ENDOFSTATS => self.on_rpl_endofstats(client, m),
+                        RPL_STATSUPTIME => self.on_rpl_statsuptime(client, m),
+                        RPL_STATSOLINE => self.on_rpl_statsoline(client, m),
+                        RPL_UMODEIS => self.on_rpl_umodeis(client, m),
+                        RPL_SERVLIST => self.on_rpl_servlist(client, m),
+                        RPL_SERVLISTEND => self.on_rpl_servlistend(client, m),
+                        RPL_LUSERCLIENT => self.on_rpl_luserclient(client, m),
+                        RPL_LUSEROP => self.on_rpl_luserop(client, m),
+                        RPL_LUSERUNKNOWN => self.on_rpl_luserunknown(client, m),
+                        RPL_LUSERCHANNELS => self.on_rpl_luserchannels(client, m),
+                        RPL_LUSERME => self.on_rpl_luserme(client, m),
+                        RPL_ADMINME => self.on_rpl_adminme(client, m),
+                        RPL_ADMINLOC1 => self.on_rpl_adminloc1(client, m),
+                        RPL_ADMINLOC2 => self.on_rpl_adminloc2(client, m),
+                        RPL_ADMINEMAIL => self.on_rpl_adminemail(client, m),
+                        RPL_TRYAGAIN => self.on_rpl_tryagain(client, m),
+                        ERR_NOSUCHNICK => self.on_err_nosuchnick(client, m),
+                        ERR_NOSUCHSERVER => self.on_err_nosuchserver(client, m),
+                        ERR_NOSUCHCHANNEL => self.on_err_nosuchchannel(client, m),
+                        ERR_CANNOTSENDTOCHAN => self.on_err_cannotsendtochan(client, m),
+                        ERR_TOOMANYCHANNELS => self.on_err_toomanychannels(client, m),
+                        ERR_WASNOSUCHNICK => self.on_err_wasnosuchnick(client, m),
+                        ERR_TOOMANYTARGETS => self.on_err_toomanytargets(client, m),
+                        ERR_NOSUCHSERVICE => self.on_err_nosuchservice(client, m),
+                        ERR_NOORIGIN => self.on_err_noorigin(client, m),
+                        ERR_NORECIPIENT => self.on_err_norecipient(client, m),
+                        ERR_NOTEXTTOSEND => self.on_err_notexttosend(client, m),
+                        ERR_NOTOPLEVEL => self.on_err_notoplevel(client, m),
+                        ERR_WILDTOPLEVEL => self.on_err_wildtoplevel(client, m),
+                        ERR_BADMASK => self.on_err_badmask(client, m),
+                        ERR_UNKNOWNCOMMAND => self.on_err_unknowncommand(client, m),
+                        ERR_NOMOTD => self.on_err_nomotd(client, m),
+                        ERR_NOADMININFO => self.on_err_noadmininfo(client, m),
+                        ERR_FILEERROR => self.on_err_fileerror(client, m),
+                        ERR_NONICKNAMEGIVEN => self.on_err_nonicknamegiven(client, m),
+                        ERR_ERRONEUSNICKNAME => self.on_err_erroneusnickname(client, m),
+                        ERR_NICKNAMEINUSE => self.on_err_nicknameinuse(client, m),
+                        ERR_NICKCOLLISION => self.on_err_nickcollision(client, m),
+                        ERR_UNAVAILRESOURCE => self.on_err_unavailresource(client, m),
+                        ERR_USERNOTINCHANNEL => self.on_err_usernotinchannel(client, m),
+                        ERR_NOTONCHANNEL => self.on_err_notonchannel(client, m),
+                        ERR_USERONCHANNEL => self.on_err_useronchannel(client, m),
+                        ERR_NOLOGIN => self.on_err_nologin(client, m),
+                        ERR_SUMMONDISABLED => self.on_err_summondisabled(client, m),
+                        ERR_USERSDISABLED => self.on_err_usersdisabled(client, m),
+                        ERR_NOTREGISTERED => self.on_err_notregistered(client, m),
+                        ERR_NEEDMOREPARAMS => self.on_err_needmoreparams(client, m),
+                        ERR_ALREADYREGISTERED => self.on_err_alreadyregistered(client, m),
+                        ERR_NOPERMFORHOST => self.on_err_nopermforhost(client, m),
+                        ERR_PASSWDMISMATCH => self.on_err_passwdmismatch(client, m),
+                        ERR_YOUREBANNEDCREEP => self.on_err_yourebannedcreep(client, m),
+                        ERR_YOUWILLBEBANNED => self.on_err_youwillbebanned(client, m),
+                        ERR_KEYSET => self.on_err_keyset(client, m),
+                        ERR_CHANNELISFULL => self.on_err_channelisfull(client, m),
+                        ERR_UNKNOWNMODE => self.on_err_unknownmode(client, m),
+                        ERR_INVITEONLYCHAN => self.on_err_inviteonlychan(client, m),
+                        ERR_BANNEDFROMCHAN => self.on_err_bannedfromchan(client, m),
+                        ERR_BADCHANNELKEY => self.on_err_badchannelkey(client, m),
+                        ERR_BADCHANMASK => self.on_err_badchanmask(client, m),
+                        ERR_NOCHANMODES => self.on_err_nochanmodes(client, m),
+                        ERR_BANLISTFULL => self.on_err_banlistfull(client, m),
+                        ERR_NOPRIVILEGES => self.on_err_noprivileges(client, m),
+                        ERR_CHANOPRIVSNEEDED => self.on_err_chanoprivsneeded(client, m),
+                        ERR_CANTKILLSERVER => self.on_err_cantkillserver(client, m),
+                        ERR_RESTRICTED => self.on_err_restricted(client, m),
+                        ERR_UNIQOPPRIVSNEEDED => self.on_err_uniqopprivsneeded(client, m),
+                        ERR_NOOPERHOST => self.on_err_nooperhost(client, m),
+                        ERR_UMODEUNKNOWNFLAG => self.on_err_umodeunknownflag(client, m),
+                        ERR_USERSDONTMATCH => self.on_err_usersdontmatch(client, m),
+                        RPL_SERVICEINFO => self.on_rpl_serviceinfo(client, m),
+                        RPL_ENDOFSERVICES => self.on_rpl_endofservices(client, m),
+                        RPL_SERVICE => self.on_rpl_service(client, m),
+                        RPL_NONE => self.on_rpl_none(client, m),
+                        RPL_WHOISCHANOP => self.on_rpl_whoischanop(client, m),
+                        RPL_KILLDONE => self.on_rpl_killdone(client, m),
+                        RPL_CLOSING => self.on_rpl_closing(client, m),
+                        RPL_CLOSEEND => self.on_rpl_closeend(client, m),
+                        RPL_INFOSTART => self.on_rpl_infostart(client, m),
+                        RPL_MYPORTIS => self.on_rpl_myportis(client, m),
+                        RPL_STATSCLINE => self.on_rpl_statscline(client, m),
+                        RPL_STATSNLINE => self.on_rpl_statsnline(client, m),
+                        RPL_STATSILINE => self.on_rpl_statsiline(client, m),
+                        RPL_STATSKLINE => self.on_rpl_statskline(client, m),
+                        RPL_STATSQLINE => self.on_rpl_statsqline(client, m),
+                        RPL_STATSYLINE => self.on_rpl_statsyline(client, m),
+                        RPL_STATSVLINE => self.on_rpl_statsvline(client, m),
+                        RPL_STATSLLINE => self.on_rpl_statslline(client, m),
+                        RPL_STATSHLINE => self.on_rpl_statshline(client, m),
+                        RPL_STATSPING => self.on_rpl_statsping(client, m),
+                        RPL_STATSBLINE => self.on_rpl_statsbline(client, m),
+                        RPL_STATSDLINE => self.on_rpl_statsdline(client, m),
+                        ERR_NOSERVICEHOST => self.on_err_noservicehost(client, m),
+                        RPL_TOPICDATE => self.on_rpl_topicdate(client, m),
+                        ERR_MSGFORBIDDEN => self.on_err_msgforbidden(client, m),
+                        _ => self.on_unknown_reply(client, m),
+                    }
                 },
             }
         });
@@ -1136,7 +1255,9 @@ pub trait ClientCallbacks {
 
     #[allow(unused_variable)] fn on_any_message (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
     #[allow(unused_variable)] fn on_invalid_message (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
-    #[allow(unused_variable)] fn on_unknown_message (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+
+    #[allow(unused_variable)] fn on_unknown_command (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_unknown_reply (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
 
     #[allow(unused_variable)] fn on_command (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
     #[allow(unused_variable)] fn on_reply (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
@@ -1189,6 +1310,169 @@ pub trait ClientCallbacks {
     #[allow(unused_variable)] fn on_wallops (&mut self, client: &mut Client, from: Option<&str>, text: &str) -> io::IoResult<()> { Ok(()) }
     #[allow(unused_variable)] fn on_userhost (&mut self, client: &mut Client, from: Option<&str>, nicknames: &[&str]) -> io::IoResult<()> { Ok(()) }
     #[allow(unused_variable)] fn on_ison (&mut self, client: &mut Client, from: Option<&str>, nicknames: &[&str]) -> io::IoResult<()> { Ok(()) }
+
+    #[allow(unused_variable)] fn on_rpl_welcome (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_yourhost (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_created (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_myinfo (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_bounce (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_userhost (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_ison (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_away (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_unaway (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_noaway (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_whoisuser (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_whoisserver (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_whoisoperator (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_whoisidle (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_endofwhois (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_whoischannels (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_whowasuser (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_endofwhowas (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_liststart (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_list (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_listend (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_uniqopis (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_channelmodeis (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_notopic (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_topic (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_inviting (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_summoning (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_invitelist (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_endofinvitelist (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_exceptlist (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_endofexceptlist (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_version (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_whoreply (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_endofwho (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_namreply (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_endofnames (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_links (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_endoflinks (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_banlist (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_endofbanlist (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_info (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_endofinfo (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_motdstart (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_motd (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_endofmotd (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_youreoper (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_rehashing (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_youreservice (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_time (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_usersstart (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_users (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_endofusers (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_nousers (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_tracelink (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_traceconnecting (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_tracehandshake (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_traceunknown (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_traceoperator (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_traceuser (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_traceserver (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_traceservice (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_tracenewtype (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_traceclass (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_tracereconnect (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_tracelog (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_traceend (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_statslinkinfo (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_statscommands (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_endofstats (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_statsuptime (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_statsoline (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_umodeis (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_servlist (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_servlistend (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_luserclient (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_luserop (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_luserunknown (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_luserchannels (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_luserme (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_adminme (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_adminloc1 (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_adminloc2 (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_adminemail (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_tryagain (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_nosuchnick (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_nosuchserver (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_nosuchchannel (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_cannotsendtochan (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_toomanychannels (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_wasnosuchnick (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_toomanytargets (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_nosuchservice (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_noorigin (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_norecipient (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_notexttosend (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_notoplevel (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_wildtoplevel (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_badmask (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_unknowncommand (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_nomotd (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_noadmininfo (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_fileerror (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_nonicknamegiven (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_erroneusnickname (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_nicknameinuse (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_nickcollision (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_unavailresource (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_usernotinchannel (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_notonchannel (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_useronchannel (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_nologin (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_summondisabled (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_usersdisabled (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_notregistered (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_needmoreparams (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_alreadyregistered (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_nopermforhost (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_passwdmismatch (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_yourebannedcreep (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_youwillbebanned (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_keyset (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_channelisfull (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_unknownmode (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_inviteonlychan (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_bannedfromchan (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_badchannelkey (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_badchanmask (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_nochanmodes (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_banlistfull (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_noprivileges (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_chanoprivsneeded (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_cantkillserver (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_restricted (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_uniqopprivsneeded (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_nooperhost (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_umodeunknownflag (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_usersdontmatch (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_serviceinfo (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_endofservices (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_service (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_none (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_whoischanop (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_killdone (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_closing (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_closeend (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_infostart (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_myportis (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_statscline (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_statsnline (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_statsiline (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_statskline (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_statsqline (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_statsyline (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_statsvline (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_statslline (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_statshline (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_statsping (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_statsbline (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_statsdline (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_noservicehost (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_rpl_topicdate (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
+    #[allow(unused_variable)] fn on_err_msgforbidden (&mut self, client: &mut Client, m: &Message) -> io::IoResult<()> { Ok(()) }
 }
 
 fn is_channel (name: &str) -> bool {
