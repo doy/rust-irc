@@ -43,6 +43,7 @@ use constants::{
     Ison,
     RawCommand,
     Reply,
+    MAX_MESSAGE_LENGTH,
 };
 use message::Message;
 
@@ -142,16 +143,23 @@ impl Client {
         // \n isn't valid inside a message, so this should be fine. if the \n
         // we find isn't preceded by a \r, this will be caught by the message
         // parser.
-        // XXX we should only be reading 512 bytes here, and throwing an error
-        // otherwise - or else we could end up reading an unbounded amount of
-        // data into memory
-        let buf = match self.conn().read_until(b'\n') {
-            Ok(b) => b,
-            Err(e) => return Err(IoError(e)),
-        };
+        let mut buf = [0, ..MAX_MESSAGE_LENGTH];
+        let mut len = 0;
+        for (res, i) in self.conn().bytes().zip(range(0, MAX_MESSAGE_LENGTH - 1)) {
+            match res {
+                Ok(b) => {
+                    buf[i] = b;
+                    if b == b'\n' {
+                        len = i + 1;
+                        break;
+                    }
+                },
+                Err(e) => return Err(IoError(e)),
+            }
+        }
 
         // XXX handle different encodings
-        match Message::parse(String::from_utf8_lossy(buf.as_slice()).as_slice()) {
+        match Message::parse(String::from_utf8_lossy(buf.slice(0, len)).as_slice()) {
             Ok(m) => Ok(m),
             Err(s) => Err(ParseError(s)),
         }
