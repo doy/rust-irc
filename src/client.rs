@@ -19,6 +19,8 @@ pub struct ClientBuilder {
 
     servername: String,
     port: u16,
+
+    debug: bool,
 }
 
 impl ClientBuilder {
@@ -33,6 +35,8 @@ impl ClientBuilder {
 
             servername: servername.to_string(),
             port: 6667,
+
+            debug: false,
         }
     }
 
@@ -58,6 +62,11 @@ impl ClientBuilder {
 
     pub fn set_port (&mut self, port: u16) -> &mut ClientBuilder {
         self.port = port;
+        self
+    }
+
+    pub fn set_debug (&mut self, debug: bool) -> &mut ClientBuilder {
+        self.debug = debug;
         self
     }
 
@@ -116,13 +125,21 @@ impl Client {
 
         // XXX handle different encodings
         match Message::parse(String::from_utf8_lossy(buf.slice(0, len)).as_slice()) {
-            Ok(m) => Ok(m),
+            Ok(m) => {
+                if self.builder.debug {
+                    print!("R {}", m.to_protocol_string());
+                }
+                Ok(m)
+            },
             Err(s) => Err(ParseError(s)),
         }
     }
 
-    pub fn write (&mut self, msg: Message) -> io::IoResult<()> {
-        try!(msg.write_protocol_string(self.conn()));
+    pub fn write (&mut self, m: Message) -> io::IoResult<()> {
+        try!(m.write_protocol_string(self.conn()));
+        if self.builder.debug {
+            print!("W {}", m.to_protocol_string());
+        }
         Ok(())
     }
 
